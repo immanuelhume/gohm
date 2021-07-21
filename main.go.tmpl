@@ -3,25 +3,11 @@ package main
 import (
 	"github.com/go-redis/redis/v8"
 
-	{{ .StringPackages }}
+	{{ .TemplatePackages }}
 )
 
-/*
 type Gohm struct {
 	*redis.Client
 
-	TODO: put the entities here, e.g.
-	User *(some package).User
+	{{ .TemplateEntityNames }}
 }
-
-TODO: put the entites here
-type User struct {
-	*redis.Client
-}
-
-func(u *User) Create(ctx context.Context, *(somepackage).User) somepackage.User, error {
-	// generate the map/array/wtv
-	// hset
-	// return sth
-}
-*/

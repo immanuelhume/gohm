@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"go/format"
 	"os"
 )
 
@@ -13,7 +14,6 @@ type User struct {
 
 func main() {
 	dir, err := os.Getwd()
-	fmt.Println(dir)
 	if err != nil {
 		panic(err)
 	}
@@ -21,5 +21,9 @@ func main() {
 	td := &TemplateData{entities}
 	b := &bytes.Buffer{}
 	WritePackage("main.go.tmpl", b, td)
-	fmt.Print(b.String())
+	src, err := format.Source(b.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print(string(src))
 }

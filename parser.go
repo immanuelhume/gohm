@@ -42,13 +42,31 @@ func (td *TemplateData) Packages() map[string]bool {
 }
 
 // Constructs package names as part of import statement.
-func (td *TemplateData) StringPackages() string {
+func (td *TemplateData) TemplatePackages() string {
 	pkgs := td.Packages()
 	var str strings.Builder
 	for pkg := range pkgs {
-		str.Write([]byte(fmt.Sprintf("\"%s\"\n", pkg)))
+		str.WriteString(fmt.Sprintf("\"%s\"\n", pkg))
 	}
 	return str.String()
+}
+
+// Collects raw names of entities.
+func (td *TemplateData) EntityNames() []string {
+	names := []string{}
+	for _, en := range td.Entities {
+		names = append(names, en.Name.Name)
+	}
+	return names
+}
+
+// Writes entity names for template.
+func (td *TemplateData) TemplateEntityNames() string {
+	var names strings.Builder
+	for _, name := range td.EntityNames() {
+		names.WriteString(fmt.Sprintf("%s\n", name))
+	}
+	return names.String()
 }
 
 // Used to walk the AST tree.
