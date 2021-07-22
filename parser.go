@@ -28,6 +28,11 @@ type TemplateData struct {
 	Entities []Entity
 }
 
+// Constructs the type with its package.
+func (e *Entity) NamespacedEntity() string {
+	return fmt.Sprintf("%s.%s", Namespace(e.Pkg), e.Name.Name)
+}
+
 // Collects all the unique package paths for entities in a set.
 func (td *TemplateData) Packages() map[string]bool {
 	paths := map[string]bool{}
@@ -61,10 +66,10 @@ func (td *TemplateData) EntityNames() []string {
 }
 
 // Writes entity names for template.
-func (td *TemplateData) TemplateEntityNames() string {
+func (td *TemplateData) TemplateGohmFields() string {
 	var names strings.Builder
 	for _, name := range td.EntityNames() {
-		names.WriteString(fmt.Sprintf("%s\n", name))
+		names.WriteString(fmt.Sprintf("%s *%s\n", name, name))
 	}
 	return names.String()
 }
@@ -114,7 +119,7 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 
 func CollectEntities(dir string) []Entity {
 	cfg := &packages.Config{Mode: packages.NeedSyntax | packages.NeedName |
-		packages.NeedTypes | packages.NeedTypesInfo}
+		packages.NeedTypes | packages.NeedTypesInfo | packages.NeedModule}
 	pkgs, err := packages.Load(cfg, dir+"/...")
 	if err != nil {
 		panic(err)
@@ -131,7 +136,10 @@ func CollectEntities(dir string) []Entity {
 
 // Write into the template.
 func WritePackage(in string, out io.Writer, data *TemplateData) {
-	funcMap := make(map[string]interface{})
+	funcMap := map[string]interface{}{
+		"toReceiverCase": toReceiverCase,
+		"toLower":        strings.ToLower,
+	}
 	tmpl, err := template.New(in).Funcs(funcMap).ParseFiles(in)
 	if err != nil {
 		panic(err)
@@ -140,4 +148,20 @@ func WritePackage(in string, out io.Writer, data *TemplateData) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// Extracts first letter of word as lower-case.
+func toReceiverCase(thing string) string {
+	return strings.ToLower(string(thing[0]))
+}
+
+func Namespace(pkg *packages.Package) string {
+	var namespace string
+	if pkg.Name == "main" {
+		spl := strings.Split(pkg.PkgPath, "/")
+		namespace = spl[len(spl)-1]
+	} else {
+		namespace = pkg.Name
+	}
+	return namespace
 }

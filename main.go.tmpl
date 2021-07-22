@@ -9,5 +9,19 @@ import (
 type Gohm struct {
 	*redis.Client
 
-	{{ .TemplateEntityNames }}
+	{{ .TemplateGohmFields }}
 }
+
+{{ range .Entities }}
+
+type {{ .Name.Name }} struct {
+	*redis.Client
+}
+
+func({{ toReceiverCase .Name.Name  }} *{{ .Name.Name }}) Create(ctx context.Context, {{ toLower .Name.Name }} *{{ .NamespacedEntity }}) {
+	panic("not implemented")
+}
+
+{{ end }}
+
+
