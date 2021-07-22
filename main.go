@@ -31,4 +31,7 @@ func main() {
 		panic(err)
 	}
 	fmt.Print(string(src))
+
+	// rdb := redis.NewClient(&redis.Options{})
+	// rdb.hs
 }

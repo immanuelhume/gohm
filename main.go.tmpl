@@ -12,6 +12,7 @@ type GohmClient struct {
 	{{ .TemplateGohmFields }}
 }
 
+// Works just like redis.NewClient and returns a client.
 func NewClient(opt *redis.Options) *GohmClient {
 	redisClient := redis.NewClient(opt)
 
@@ -26,11 +27,27 @@ func NewClient(opt *redis.Options) *GohmClient {
 }
 
 {{ range .Entities }}
+{{ $lower := toLower .Name.Name }}
+{{ $rcv := toReceiverCase .Name.Name}}
 type {{ .Name.Name }} struct {
 	rdb *redis.Client
 }
 
-func({{ toReceiverCase .Name.Name  }} *{{ .Name.Name }}) Create(ctx context.Context, {{ toLower .Name.Name }} *{{ .NamespacedEntity }}) error {
+func({{ $rcv }} *{{ .Name.Name }}) Create(ctx context.Context, {{ $lower }} *{{ .NamespacedEntity }}) error {
+	{{ $lower }}Map := mapStruct({{ $lower }})
+	{{ $rcv }}.rdb.HSet()
 	panic("not implemented")
 }
 {{ end }}
+
+// For use in redis.HSet. Produces a map from the fields of a struct.
+func mapStruct(i interface{}) map[string]interface{} {
+	v := reflect.ValueOf(i)
+	t := v.Type()
+
+	res := make(map[string]interface{})
+	for i := 0; i < v.NumField(); i++ {
+		res[t.Field(i).Name] = v.Field(i).Interface()
+	}
+	return res
+}

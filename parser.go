@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/types"
 	"io"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -164,4 +165,16 @@ func Namespace(pkg *packages.Package) string {
 		namespace = pkg.Name
 	}
 	return namespace
+}
+
+// For use in redis.HSet. Produces a map from the fields of a struct.
+func MapStruct(i interface{}) map[string]interface{} {
+	v := reflect.ValueOf(i)
+	t := v.Type()
+
+	res := make(map[string]interface{})
+	for i := 0; i < v.NumField(); i++ {
+		res[t.Field(i).Name] = v.Field(i).Interface()
+	}
+	return res
 }
