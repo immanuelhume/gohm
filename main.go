@@ -12,6 +12,11 @@ type User struct {
 	Name string
 }
 
+// gohm
+type Anime struct {
+	Title string
+}
+
 func main() {
 	dir, err := os.Getwd()
 	if err != nil {

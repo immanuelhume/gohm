@@ -6,22 +6,31 @@ import (
 	{{ .TemplatePackages }}
 )
 
-type Gohm struct {
-	*redis.Client
+type GohmClient struct {
+	rdb *redis.Client
 
 	{{ .TemplateGohmFields }}
 }
 
-{{ range .Entities }}
+func NewClient(opt *redis.Options) *GohmClient {
+	redisClient := redis.NewClient(opt)
 
-type {{ .Name.Name }} struct {
-	*redis.Client
+	gohmClient := &GohmClient{
+		rdb: redisClient, 
+		{{ range .Entities }}
+		{{- toLower .Name.Name }}: &{{ .Name.Name }}{rdb: redisClient},
+		{{ end }}
+		}
+	
+	return gohmClient
 }
 
-func({{ toReceiverCase .Name.Name  }} *{{ .Name.Name }}) Create(ctx context.Context, {{ toLower .Name.Name }} *{{ .NamespacedEntity }}) {
+{{ range .Entities }}
+type {{ .Name.Name }} struct {
+	rdb *redis.Client
+}
+
+func({{ toReceiverCase .Name.Name  }} *{{ .Name.Name }}) Create(ctx context.Context, {{ toLower .Name.Name }} *{{ .NamespacedEntity }}) error {
 	panic("not implemented")
 }
-
 {{ end }}
-
-
