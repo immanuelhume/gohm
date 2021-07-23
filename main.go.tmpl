@@ -50,11 +50,25 @@ func({{ $rcv }} *{{ .Name.Name }}) Create(ctx context.Context, {{ $lower }} *{{ 
 	_, err := pipe.Exec(ctx)
 	return err
 }
+
+func({{ $rcv }} *{{ .Name.Name }}) FindOne(ctx context.Context, filter *{{ .Name.Name }}Filter) {{ .NamespacedEntity }} {
+	panic("not implemented")
+}
+
+// Utility type used for searching {{ .Name.Name }} entities.
+type {{ .Name.Name }}Filter struct {
+	{{ range .PtrFields}}
+	{{- . }}
+	{{ end }}
+}
 {{ end }}
 
 // For use in redis.HSet. Produces a map from the fields of a struct.
 func mapStruct(i interface{}) map[string]interface{} {
-	v := reflect.Indirect(reflect.ValueOf(i))
+	v := reflect.ValueOf(i)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
 	t := v.Type()
 
 	res := make(map[string]interface{})
@@ -74,3 +88,18 @@ func genKey(tags ...interface{}) string {
 	format := strings.Join(sl, ":")
 	return fmt.Sprintf(format, tags...)
 }
+
+// Bool stores v in a new bool value and returns a pointer to it.
+func Bool(v bool) *bool { return &v }
+
+// Int stores v in a new int value and returns a pointer to it.
+func Int(v int) *int { return &v }
+
+// Float32 stores v in a new float32 value and returns a pointer to it.
+func Float32(v float32) *float32 { return &v }
+
+// Float64 stores v in a new float64 value and returns a pointer to it.
+func Float64(v float64) *float64 { return &v }
+
+// String stores v in a new string value and returns a pointer to it.
+func String(v string) *string { return &v }

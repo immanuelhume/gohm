@@ -25,12 +25,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	ioutil.WriteFile("./local/gohm.go", src, 0644)
+	ioutil.WriteFile("./local/generated.go", src, 0644)
 
 	ctx := context.Background()
 	rdb := gohm.NewClient(&redis.Options{})
-	err = rdb.User.Create(ctx, &playground.User{Name: "Yo Mama"})
+	err = rdb.User.Create(ctx, &playground.User{Name: "Yo Mama", Age: 20})
 	if err != nil {
 		panic(err)
 	}
+
+	// rdb.User.FindOne(&gohm.UserFilter{Name: gohm.String("hello")})
 }

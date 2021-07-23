@@ -67,6 +67,19 @@ func (td *TemplateData) EntityNames() []string {
 	return names
 }
 
+// Generates a slice of strings to denote each field of
+// the struct as a pointer.
+func (e *Entity) PtrFields() []string {
+	// TODO: handle case where field is already a pointer
+	fields := []string{}
+	for i := 0; i < e.Fields.NumFields(); i++ {
+		f := e.Fields.Field(i)
+		line := fmt.Sprintf("%s *%s", f.Name(), f.Type().String())
+		fields = append(fields, line)
+	}
+	return fields
+}
+
 // Writes entity names for template.
 func (td *TemplateData) TemplateGohmFields() string {
 	var names strings.Builder
@@ -115,7 +128,8 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	}
 	// check if it's in package main
 	if pkg.Name == "main" {
-		log.Fatalf("Cannot read from package main. (%s)", pkg.PkgPath)
+		log.Fatalf("Cannot read from package main. (type %s in %s)",
+			spec.Name.Name, pkg.PkgPath)
 	}
 	// create entity
 	en := Entity{Pkg: pkg, Name: spec.Name, Fields: tobj}
