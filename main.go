@@ -2,19 +2,14 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"go/format"
+	"io/ioutil"
 	"os"
 )
 
 // gohm
 type User struct {
 	Name string
-}
-
-// gohm
-type Anime struct {
-	Title string
 }
 
 func main() {
@@ -30,8 +25,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Print(string(src))
-
+	ioutil.WriteFile("./local/gohm.go", src, 0644)
 	// rdb := redis.NewClient(&redis.Options{})
 	// rdb.hs
 }

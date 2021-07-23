@@ -1,7 +1,9 @@
-package main
+package gohm
 
 import (
+	"context"
 	"github.com/go-redis/redis/v8"
+	"reflect"
 
 	{{ .TemplatePackages }}
 )
@@ -19,7 +21,7 @@ func NewClient(opt *redis.Options) *GohmClient {
 	gohmClient := &GohmClient{
 		rdb: redisClient, 
 		{{ range .Entities }}
-		{{- toLower .Name.Name }}: &{{ .Name.Name }}{rdb: redisClient},
+		{{- .Name.Name }}: &{{ .Name.Name }}{rdb: redisClient},
 		{{ end }}
 		}
 	

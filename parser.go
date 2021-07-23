@@ -34,15 +34,15 @@ func (e *Entity) NamespacedEntity() string {
 	return fmt.Sprintf("%s.%s", Namespace(e.Pkg), e.Name.Name)
 }
 
-// Collects all the unique package paths for entities in a set.
-func (td *TemplateData) Packages() map[string]bool {
-	paths := map[string]bool{}
+// Collects all the unique packages for entities in a set.
+func (td *TemplateData) Packages() map[*packages.Package]bool {
+	paths := map[*packages.Package]bool{}
 	for _, en := range td.Entities {
-		_, ok := paths[en.Pkg.PkgPath]
+		_, ok := paths[en.Pkg]
 		if ok {
 			continue
 		}
-		paths[en.Pkg.PkgPath] = true
+		paths[en.Pkg] = true
 	}
 	return paths
 }
@@ -52,7 +52,7 @@ func (td *TemplateData) TemplatePackages() string {
 	pkgs := td.Packages()
 	var str strings.Builder
 	for pkg := range pkgs {
-		str.WriteString(fmt.Sprintf("\"%s\"\n", pkg))
+		str.WriteString(fmt.Sprintf("%s \"%s\"\n", Namespace(pkg), pkg.PkgPath))
 	}
 	return str.String()
 }
@@ -119,6 +119,7 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 }
 
 func CollectEntities(dir string) []Entity {
+	// TODO: check for re-declarations
 	cfg := &packages.Config{Mode: packages.NeedSyntax | packages.NeedName |
 		packages.NeedTypes | packages.NeedTypesInfo | packages.NeedModule}
 	pkgs, err := packages.Load(cfg, dir+"/...")
@@ -157,6 +158,7 @@ func toReceiverCase(thing string) string {
 }
 
 func Namespace(pkg *packages.Package) string {
+	// TODO: make this more intelligent
 	var namespace string
 	if pkg.Name == "main" {
 		spl := strings.Split(pkg.PkgPath, "/")
