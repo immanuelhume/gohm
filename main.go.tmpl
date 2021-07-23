@@ -9,11 +9,11 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
-	{{ .TemplatePackages }}
+	{{ .TemplateImports }}
 )
 
 type GohmClient struct {
-	rdb *redis.Client
+	*redis.Client
 
 	{{ .TemplateGohmFields }}
 }
@@ -23,9 +23,9 @@ func NewClient(opt *redis.Options) *GohmClient {
 	redisClient := redis.NewClient(opt)
 
 	gohmClient := &GohmClient{
-		rdb: redisClient, 
-		{{ range .Entities }}
-		{{- .Name.Name }}: &{{ .Name.Name }}{rdb: redisClient},
+		redisClient, 
+		{{ range .Entities -}}
+		&{{ .Name.Name }}{rdb: redisClient},
 		{{ end }}
 		}
 	
@@ -54,7 +54,7 @@ func({{ $rcv }} *{{ .Name.Name }}) Create(ctx context.Context, {{ $lower }} *{{ 
 
 // For use in redis.HSet. Produces a map from the fields of a struct.
 func mapStruct(i interface{}) map[string]interface{} {
-	v := reflect.ValueOf(i)
+	v := reflect.Indirect(reflect.ValueOf(i))
 	t := v.Type()
 
 	res := make(map[string]interface{})

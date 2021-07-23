@@ -3,20 +3,14 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"go/format"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
+	gohm "github.com/immanuelhume/gohm/local"
+	"github.com/immanuelhume/gohm/local/playground"
 )
-
-// gohm
-type User struct {
-	Name string
-}
 
 func main() {
 	dir, err := os.Getwd()
@@ -33,28 +27,10 @@ func main() {
 	}
 	ioutil.WriteFile("./local/gohm.go", src, 0644)
 
-	stub := map[string]interface{}{
-		"Name": "Becky",
-		"Age":  12,
-	}
-
 	ctx := context.Background()
-	rdb := redis.NewClient(&redis.Options{})
-	pipe := rdb.Pipeline()
-	id := uuid.NewString()
-	// Add field entries
-	for k, v := range stub {
-		pipe.SAdd(ctx, GenKey(k, v), id)
+	rdb := gohm.NewClient(&redis.Options{})
+	err = rdb.User.Create(ctx, &playground.User{Name: "Yo Mama"})
+	if err != nil {
+		panic(err)
 	}
-	pipe.HSet(ctx, GenKey("user", id), stub)
-}
-
-func GenKey(tags ...interface{}) string {
-	n := len(tags)
-	sl := []string{}
-	for i := 0; i < n; i++ {
-		sl = append(sl, "%v")
-	}
-	format := strings.Join(sl, ":")
-	return fmt.Sprintf(format, tags...)
 }

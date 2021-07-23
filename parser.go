@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/types"
 	"io"
+	"log"
 	"reflect"
 	"strings"
 	"text/template"
@@ -31,7 +32,7 @@ type TemplateData struct {
 
 // Constructs the type with its package.
 func (e *Entity) NamespacedEntity() string {
-	return fmt.Sprintf("%s.%s", Namespace(e.Pkg), e.Name.Name)
+	return fmt.Sprintf("%s.%s", e.Pkg.Name, e.Name.Name)
 }
 
 // Collects all the unique packages for entities in a set.
@@ -48,11 +49,11 @@ func (td *TemplateData) Packages() map[*packages.Package]bool {
 }
 
 // Constructs package names as part of import statement.
-func (td *TemplateData) TemplatePackages() string {
+func (td *TemplateData) TemplateImports() string {
 	pkgs := td.Packages()
 	var str strings.Builder
 	for pkg := range pkgs {
-		str.WriteString(fmt.Sprintf("%s \"%s\"\n", Namespace(pkg), pkg.PkgPath))
+		str.WriteString(fmt.Sprintf("%s \"%s\"\n", pkg.Name, pkg.PkgPath))
 	}
 	return str.String()
 }
@@ -112,6 +113,10 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	if !ok {
 		return v
 	}
+	// check if it's in package main
+	if pkg.Name == "main" {
+		log.Fatalf("Cannot read from package main. (%s)", pkg.PkgPath)
+	}
 	// create entity
 	en := Entity{Pkg: pkg, Name: spec.Name, Fields: tobj}
 	v.Entities = append(v.Entities, en)
@@ -155,19 +160,6 @@ func WritePackage(in string, out io.Writer, data *TemplateData) {
 // Extracts first letter of word as lower-case.
 func toReceiverCase(thing string) string {
 	return strings.ToLower(string(thing[0]))
-}
-
-func Namespace(pkg *packages.Package) string {
-	// TODO: make this more intelligent
-	// BUG: we can't import from package main
-	var namespace string
-	if pkg.Name == "main" {
-		spl := strings.Split(pkg.PkgPath, "/")
-		namespace = spl[len(spl)-1]
-	} else {
-		namespace = pkg.Name
-	}
-	return namespace
 }
 
 // For use in redis.HSet. Produces a map from the fields of a struct.
