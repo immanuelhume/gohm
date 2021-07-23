@@ -2,8 +2,12 @@ package gohm
 
 import (
 	"context"
-	"github.com/go-redis/redis/v8"
+	"fmt"
 	"reflect"
+	"strings"
+
+	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 
 	{{ .TemplatePackages }}
 )
@@ -36,9 +40,15 @@ type {{ .Name.Name }} struct {
 }
 
 func({{ $rcv }} *{{ .Name.Name }}) Create(ctx context.Context, {{ $lower }} *{{ .NamespacedEntity }}) error {
+	pipe := {{ $rcv }}.rdb.Pipeline()
+	enKey := genKey("{{ .Name.Name }}", uuid.NewString())
 	{{ $lower }}Map := mapStruct({{ $lower }})
-	{{ $rcv }}.rdb.HSet()
-	panic("not implemented")
+	for k, v := range {{ $lower }}Map {
+		pipe.SAdd(ctx, genKey("{{ .Name.Name }}", k, v), enKey)
+	}
+	pipe.HSet(ctx, enKey, {{ $lower }}Map)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 {{ end }}
 
@@ -52,4 +62,15 @@ func mapStruct(i interface{}) map[string]interface{} {
 		res[t.Field(i).Name] = v.Field(i).Interface()
 	}
 	return res
+}
+
+// Helper function to insert ':' for redis keys.
+func genKey(tags ...interface{}) string {
+	n := len(tags)
+	sl := []string{}
+	for i := 0; i < n; i++ {
+		sl = append(sl, "%v")
+	}
+	format := strings.Join(sl, ":")
+	return fmt.Sprintf(format, tags...)
 }

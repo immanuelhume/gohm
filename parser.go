@@ -159,6 +159,7 @@ func toReceiverCase(thing string) string {
 
 func Namespace(pkg *packages.Package) string {
 	// TODO: make this more intelligent
+	// BUG: we can't import from package main
 	var namespace string
 	if pkg.Name == "main" {
 		spl := strings.Split(pkg.PkgPath, "/")
