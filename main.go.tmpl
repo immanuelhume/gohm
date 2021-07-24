@@ -89,6 +89,38 @@ func genKey(tags ...interface{}) string {
 	return fmt.Sprintf(format, tags...)
 }
 
+// Finds the intersection of n slices.
+func intersect(slices ...[]string) []string {
+	if len(slices) == 1 {
+		return slices[0]
+	}
+
+	head := make(map[string]bool)
+	// store first elem in a map
+	for _, v := range slices[0] {
+		head[v] = true
+	}
+	for _, sl := range slices[1:] {
+		var hits []string
+		for _, v := range sl {
+			_, ok := head[v]
+			if ok {
+				hits = append(hits, v)
+			}
+		}
+		head = map[string]bool{}
+		for _, v := range hits {
+			head[v] = true
+		}
+	}
+
+	var res []string
+	for k := range head {
+		res = append(res, k)
+	}
+	return res
+}
+
 // Bool stores v in a new bool value and returns a pointer to it.
 func Bool(v bool) *bool { return &v }
 

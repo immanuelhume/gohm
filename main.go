@@ -34,5 +34,5 @@ func main() {
 		panic(err)
 	}
 
-	// rdb.User.FindOne(&gohm.UserFilter{Name: gohm.String("hello")})
+	rdb.User.FindOne(ctx, &gohm.UserFilter{Name: gohm.String("hello")})
 }
