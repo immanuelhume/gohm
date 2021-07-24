@@ -25,6 +25,11 @@ type Entity struct {
 	Fields *types.Struct
 }
 
+type Field struct {
+	Name string
+	Type string
+}
+
 // Shape of the data we're gonna pass into our template file.
 type TemplateData struct {
 	Entities []Entity
@@ -78,6 +83,15 @@ func (e *Entity) PtrFields() []string {
 		fields = append(fields, line)
 	}
 	return fields
+}
+
+func (e *Entity) LsFields() []Field {
+	var fds []Field
+	for i := 0; i < e.Fields.NumFields(); i++ {
+		f := e.Fields.Field(i)
+		fds = append(fds, Field{f.Name(), f.Type().String()})
+	}
+	return fds
 }
 
 // Writes entity names for template.

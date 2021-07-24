@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/go-redis/redis/v8"
@@ -35,6 +36,7 @@ func NewClient(opt *redis.Options) *GohmClient {
 {{ range .Entities }}
 {{ $lower := toLower .Name.Name }}
 {{ $rcv := toReceiverCase .Name.Name}}
+{{ $ns := .NamespacedEntity }}
 type {{ .Name.Name }} struct {
 	rdb *redis.Client
 }
@@ -51,8 +53,69 @@ func({{ $rcv }} *{{ .Name.Name }}) Create(ctx context.Context, {{ $lower }} *{{ 
 	return err
 }
 
-func({{ $rcv }} *{{ .Name.Name }}) FindOne(ctx context.Context, filter *{{ .Name.Name }}Filter) {{ .NamespacedEntity }} {
-	panic("not implemented")
+func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Name.Name }}Filter) ([]{{ .NamespacedEntity }}, error) {
+	v := reflect.ValueOf(filter).Elem()
+	t := reflect.TypeOf(filter).Elem()
+
+	pipe := {{ $rcv }}.rdb.Pipeline()
+	var cmds []*redis.StringSliceCmd
+	var hits [][]string
+
+	var raw []*redis.StringStringMapCmd
+	var {{ $lower }} []{{ .NamespacedEntity }}
+
+	for i := 0; i < v.NumField(); i++ {
+		val := v.Field(i)
+		if val.IsNil() {
+			continue
+		}
+		field := t.Field(i).Name
+
+		key := genKey("{{ .Name.Name }}", field, val.Elem())
+		cmds = append(cmds, pipe.SMembers(ctx, key))
+	}
+
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		return []{{ .NamespacedEntity }}{}, err
+	}
+
+	for _, cmd := range cmds {
+		hits = append(hits, cmd.Val())
+	}
+	keys := intersect(hits...)
+
+	for _, k := range keys {
+		raw = append(raw, pipe.HGetAll(ctx, k))
+	}
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return []{{ .NamespacedEntity }}{}, err
+	}
+
+	for _, m := range raw {
+		v := m.Val()
+
+		{{ range .LsFields -}}
+		{{ if eq .Type "int" }}
+		{{- .Name }}, err := strconv.Atoi(v["{{ .Name }}"])
+		if err != nil {
+			return []{{ $ns }}{}, err
+		}
+		{{- else }}
+		{{- .Name }} := v["{{ .Name }}"]
+		{{- end }}
+		{{ end }}
+
+		{{ $rcv }} := {{ .NamespacedEntity }}{
+			{{ range .LsFields }}
+			{{- .Name }}: {{ .Name }},
+			{{ end }}
+		}
+		
+		{{ $lower }} = append({{ $lower }}, {{ $rcv }})
+	}
+	return {{ $lower }}, nil
 }
 
 // Utility type used for searching {{ .Name.Name }} entities.
