@@ -43,14 +43,20 @@ type {{ .Name.Name }} struct {
 
 // Saves one {{ .Name.Name }} into Redis. Returns either an error or nil.
 func({{ $rcv }} *{{ .Name.Name }}) Save(ctx context.Context, {{ $lower }} *{{ .NamespacedEntity }}) error {
-	pipe := {{ $rcv }}.rdb.Pipeline()
-	enKey := genKey("{{ .Name.Name }}", uuid.NewString())
-	{{ $lower }}Map := mapStruct({{ $lower }})
-	for k, v := range {{ $lower }}Map {
-		pipe.SAdd(ctx, genKey("{{ .Name.Name }}", k, v), enKey)
+	_pipe := {{ $rcv }}.rdb.Pipeline()
+	_enKey := genKey("{{ .Name.Name }}", uuid.NewString())
+	_vMap := make(map[string]interface{})
+	{{ range .LsFields }}
+	{{ $raw := .Name | printf "%s.%s" $lower -}}
+	_vMap["{{ .Name }}"] = {{ template "to-string.go.tmpl" newMarshallData . $raw .Name "nil" -}} 
+	{{ end }}
+
+	for k, v := range _vMap {
+		_pipe.SAdd(ctx, genKey("{{ .Name.Name }}", k, v), _enKey)
 	}
-	pipe.HSet(ctx, enKey, {{ $lower }}Map)
-	_, err := pipe.Exec(ctx)
+	_pipe.HSet(ctx, _enKey, _vMap)
+	
+	_, err := _pipe.Exec(ctx)
 	return err
 }
 
@@ -138,7 +144,7 @@ func mapStruct(i interface{}) map[string]interface{} {
 	return res
 }
 
-// Helper function to insert ':' for redis keys.
+// Helper function to insert ':'s for redis keys.
 func genKey(tags ...interface{}) string {
 	n := len(tags)
 	sl := []string{}
@@ -156,7 +162,7 @@ func intersect(slices ...[]string) []string {
 	}
 
 	head := make(map[string]bool)
-	// store first elem in a map
+
 	for _, v := range slices[0] {
 		head[v] = true
 	}

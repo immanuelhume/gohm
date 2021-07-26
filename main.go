@@ -10,6 +10,7 @@ import (
 
 // TODO: marshall basic types
 // TODO: check validity of types at generation time
+// unsupported types: byte, rune
 
 func main() {
 	Gen()

@@ -31,6 +31,40 @@ if err != nil {
 	return {{ .OnError }}, err
 }
 
+{{- else if eq .Type "uint" -}}
+_{{ .ResExp }}, err := strconv.ParseUint({{ .RawExp }}, 10, 64)
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{ .ResExp }} := uint(_{{ .ResExp }})
+
+{{- else if eq .Type "uint8" -}}
+_{{ .ResExp }}, err := strconv.ParseUint({{ .RawExp }}, 10, 8)
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{ .ResExp }} := uint8(_{{ .ResExp }})
+
+{{- else if eq .Type "uint16" -}}
+_{{ .ResExp }}, err := strconv.ParseUint({{ .RawExp }}, 10, 16)
+if err != nil {
+	return {{ .OnError}}, err
+}
+{{ .ResExp }} := uint16(_{{ .ResExp }})
+
+{{- else if eq .Type "uint32" -}}
+_{{ .ResExp }}, err := strconv.ParseUint({{ .RawExp }}, 10, 32)
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{ .ResExp }} := uint32(_{{ .ResExp }})
+
+{{- else if eq .Type "uint64" -}}
+{{ .ResExp }}, err := strconv.ParseUint({{ .RawExp }}, 10, 64)
+if err != nil {
+	return {{ .OnError }}, err
+}
+
 {{- else if eq .Type "float32" -}}
 _{{ .ResExp }}, err := strconv.ParseFloat({{ .RawExp }}, 32)
 if err != nil {
