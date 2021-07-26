@@ -19,7 +19,7 @@ type GohmClient struct {
 	{{ .TemplateGohmFields }}
 }
 
-// Works just like redis.NewClient and returns a client.
+// Works just like redis.NewClient and returns a Redis client.
 func NewClient(opt *redis.Options) *GohmClient {
 	redisClient := redis.NewClient(opt)
 
@@ -41,7 +41,8 @@ type {{ .Name.Name }} struct {
 	rdb *redis.Client
 }
 
-func({{ $rcv }} *{{ .Name.Name }}) Create(ctx context.Context, {{ $lower }} *{{ .NamespacedEntity }}) error {
+// Saves one {{ .Name.Name }} into Redis. Returns either an error or nil.
+func({{ $rcv }} *{{ .Name.Name }}) Save(ctx context.Context, {{ $lower }} *{{ .NamespacedEntity }}) error {
 	pipe := {{ $rcv }}.rdb.Pipeline()
 	enKey := genKey("{{ .Name.Name }}", uuid.NewString())
 	{{ $lower }}Map := mapStruct({{ $lower }})
@@ -53,6 +54,7 @@ func({{ $rcv }} *{{ .Name.Name }}) Create(ctx context.Context, {{ $lower }} *{{ 
 	return err
 }
 
+// Returns as a slice all {{ .Name.Name }}(s) which fulfill the provided filter conditions.
 func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Name.Name }}Filter) ([]{{ .NamespacedEntity }}, error) {
 	v := reflect.ValueOf(filter).Elem()
 	t := reflect.TypeOf(filter).Elem()
@@ -62,7 +64,7 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 	var hits [][]string
 
 	var raw []*redis.StringStringMapCmd
-	var {{ $lower }} []{{ .NamespacedEntity }}
+	var _results []{{ .NamespacedEntity }}
 
 	for i := 0; i < v.NumField(); i++ {
 		val := v.Field(i)
@@ -97,14 +99,8 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 		v := m.Val()
 
 		{{ range .LsFields -}}
-		{{ if eq .Type "int" }}
-		{{- .Name }}, err := strconv.Atoi(v["{{ .Name }}"])
-		if err != nil {
-			return []{{ $ns }}{}, err
-		}
-		{{- else }}
-		{{- .Name }} := v["{{ .Name }}"]
-		{{- end }}
+		{{ $raw := .Name | printf "v[%q]" -}}
+		{{ template "from-string.go.tmpl" newMarshallData . $raw .Name "nil" }}
 		{{ end }}
 
 		{{ $rcv }} := {{ .NamespacedEntity }}{
@@ -113,12 +109,13 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 			{{ end }}
 		}
 		
-		{{ $lower }} = append({{ $lower }}, {{ $rcv }})
+		_results = append(_results, {{ $rcv }})
 	}
-	return {{ $lower }}, nil
+	return _results, nil
 }
 
-// Utility type used for searching {{ .Name.Name }} entities.
+// Utility type used for searching {{ .Name.Name }} entities. Every field
+// must be a pointer to differentiate between zero-values and nil fields.
 type {{ .Name.Name }}Filter struct {
 	{{ range .PtrFields}}
 	{{- . }}

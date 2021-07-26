@@ -6,7 +6,6 @@ import (
 	"go/types"
 	"io"
 	"log"
-	"reflect"
 	"strings"
 	"text/template"
 
@@ -25,7 +24,7 @@ type Entity struct {
 	Fields *types.Struct
 }
 
-type Field struct {
+type SimpleField struct {
 	Name string
 	Type string
 }
@@ -38,6 +37,29 @@ type TemplateData struct {
 // Constructs the type with its package.
 func (e *Entity) NamespacedEntity() string {
 	return fmt.Sprintf("%s.%s", e.Pkg.Name, e.Name.Name)
+}
+
+// Generates a slice of strings to denote each field of
+// the struct as a pointer.
+func (e *Entity) PtrFields() []string {
+	// TODO: handle case where field is already a pointer
+	fields := []string{}
+	for i := 0; i < e.Fields.NumFields(); i++ {
+		f := e.Fields.Field(i)
+		line := fmt.Sprintf("%s *%s", f.Name(), f.Type().String())
+		fields = append(fields, line)
+	}
+	return fields
+}
+
+// LsFields returns the fields on an entity as a slice of SimpleField's.
+func (e *Entity) LsFields() []SimpleField {
+	var fds []SimpleField
+	for i := 0; i < e.Fields.NumFields(); i++ {
+		f := e.Fields.Field(i)
+		fds = append(fds, SimpleField{f.Name(), f.Type().String()})
+	}
+	return fds
 }
 
 // Collects all the unique packages for entities in a set.
@@ -72,29 +94,8 @@ func (td *TemplateData) EntityNames() []string {
 	return names
 }
 
-// Generates a slice of strings to denote each field of
-// the struct as a pointer.
-func (e *Entity) PtrFields() []string {
-	// TODO: handle case where field is already a pointer
-	fields := []string{}
-	for i := 0; i < e.Fields.NumFields(); i++ {
-		f := e.Fields.Field(i)
-		line := fmt.Sprintf("%s *%s", f.Name(), f.Type().String())
-		fields = append(fields, line)
-	}
-	return fields
-}
-
-func (e *Entity) LsFields() []Field {
-	var fds []Field
-	for i := 0; i < e.Fields.NumFields(); i++ {
-		f := e.Fields.Field(i)
-		fds = append(fds, Field{f.Name(), f.Type().String()})
-	}
-	return fds
-}
-
-// Writes entity names for template.
+// Writes entity names for template. This is used when constructing the
+// new client.
 func (td *TemplateData) TemplateGohmFields() string {
 	var names strings.Builder
 	for _, name := range td.EntityNames() {
@@ -103,13 +104,15 @@ func (td *TemplateData) TemplateGohmFields() string {
 	return names.String()
 }
 
-// Used to walk the AST tree.
+// Visitor to walk the AST tree.
 type Visitor struct {
 	PkgIndex int
 	Pkgs     []*packages.Package
 	Entities []Entity
 }
 
+// Visit will add nodes which are a struct type tagged with the // gohm
+// comment. All other nodes are ignored.
 func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	// cast to GenDecl
 	gd, ok := node.(*ast.GenDecl)
@@ -151,6 +154,8 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	return v
 }
 
+// CollectEntities takes a root directory and returns all entities found
+// in all packages.
 func CollectEntities(dir string) []Entity {
 	// TODO: check for re-declarations
 	cfg := &packages.Config{Mode: packages.NeedSyntax | packages.NeedName |
@@ -170,16 +175,12 @@ func CollectEntities(dir string) []Entity {
 }
 
 // Write into the template.
-func WritePackage(in string, out io.Writer, data *TemplateData) {
-	funcMap := map[string]interface{}{
-		"toReceiverCase": toReceiverCase,
-		"toLower":        strings.ToLower,
-	}
-	tmpl, err := template.New(in).Funcs(funcMap).ParseFiles(in)
+func WritePackage(main string, in string, out io.Writer, data interface{}, funcMap map[string]interface{}) {
+	tmpl, err := template.New(main).Funcs(funcMap).ParseGlob(in)
 	if err != nil {
 		panic(err)
 	}
-	err = tmpl.Execute(out, data)
+	err = tmpl.ExecuteTemplate(out, main, data)
 	if err != nil {
 		panic(err)
 	}
@@ -190,14 +191,16 @@ func toReceiverCase(thing string) string {
 	return strings.ToLower(string(thing[0]))
 }
 
-// For use in redis.HSet. Produces a map from the fields of a struct.
-func MapStruct(i interface{}) map[string]interface{} {
-	v := reflect.ValueOf(i)
-	t := v.Type()
+// Utility type for converting to-and-fro strings.
+type MarshallData struct {
+	Type    string
+	RawExp  string
+	ResExp  string
+	OnError string
+}
 
-	res := make(map[string]interface{})
-	for i := 0; i < v.NumField(); i++ {
-		res[t.Field(i).Name] = v.Field(i).Interface()
-	}
-	return res
+// Creates a new type containing the necessary information for marshalling
+// to-and-fro strings.
+func newMarshallData(f SimpleField, rawExp, resExp, onError string) MarshallData {
+	return MarshallData{f.Type, rawExp, resExp, onError}
 }

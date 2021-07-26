@@ -2,30 +2,24 @@ package main
 
 import (
 	"bytes"
-	"context"
-	"fmt"
 	"go/format"
 	"io/ioutil"
 	"os"
-
-	"github.com/go-redis/redis/v8"
-	gohm "github.com/immanuelhume/gohm/local"
+	"strings"
 )
 
-func main() {
-	// Gen()
+// TODO: marshall basic types
+// TODO: check validity of types at generation time
 
-	ctx := context.Background()
-	rdb := gohm.NewClient(&redis.Options{})
-	// err := rdb.User.Create(ctx, &playground.User{Name: "Yo Mama", Age: 21})
+func main() {
+	Gen()
+
+	// ctx := context.Background()
+	// rdb := gohm.NewClient(&redis.Options{})
+	// err := rdb.User.Save(ctx, &playground.User{})
 	// if err != nil {
 	// 	panic(err)
 	// }
-	users, err := rdb.User.FindMany(ctx, &gohm.UserFilter{Age: gohm.Int(20)})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Print(users)
 }
 
 func Gen() {
@@ -36,7 +30,11 @@ func Gen() {
 	entities := CollectEntities(dir)
 	td := &TemplateData{entities}
 	b := &bytes.Buffer{}
-	WritePackage("main.go.tmpl", b, td)
+	WritePackage("main.go.tmpl", "templates/*", b, td, map[string]interface{}{
+		"toReceiverCase":  toReceiverCase,
+		"toLower":         strings.ToLower,
+		"newMarshallData": newMarshallData,
+	})
 	src, err := format.Source(b.Bytes())
 	if err != nil {
 		panic(err)

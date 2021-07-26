@@ -1,0 +1,68 @@
+{{ if eq .Type "int" -}}
+{{ .ResExp }}, err := strconv.Atoi({{ .RawExp }})
+if err != nil {
+	return {{ .OnError }}, err
+}
+
+{{- else if eq .Type "int8" -}}
+_{{ .ResExp }}, err := strconv.ParseInt({{ .RawExp }}, 10, 8)
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{ .ResExp }} := int8(_{{ .ResExp }})
+
+{{- else if eq .Type "int16" -}}
+_{{ .ResExp }}, err := strconv.ParseInt({{ .RawExp }}, 10, 16)
+if err != nil {
+	return {{ .OnError}}, err
+}
+{{ .ResExp }} := int16(_{{ .ResExp }})
+
+{{- else if eq .Type "int32" -}}
+_{{ .ResExp }}, err := strconv.ParseInt({{ .RawExp }}, 10, 32)
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{ .ResExp }} := int32(_{{ .ResExp }})
+
+{{- else if eq .Type "int64" -}}
+{{ .ResExp }}, err := strconv.ParseInt({{ .RawExp }}, 10, 64)
+if err != nil {
+	return {{ .OnError }}, err
+}
+
+{{- else if eq .Type "float32" -}}
+_{{ .ResExp }}, err := strconv.ParseFloat({{ .RawExp }}, 32)
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{ .ResExp }} := float32(_{{ .ResExp }})
+
+{{- else if eq .Type "float64" -}}
+{{ .ResExp }}, err := strconv.ParseFloat({{ .RawExp }}, 64)
+if err != nil {
+	return {{ .OnError }}, err
+}
+
+{{- else if eq .Type "string" -}}
+{{ .ResExp }} := {{ .RawExp }}
+
+{{- else if eq .Type "complex64" -}}
+_{{ .ResExp }}, err := strconv.ParseComplex({{ .RawExp }}, 64)
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{ .ResExp }} := complex64(_{{ .ResExp }})
+
+{{- else if eq .Type "complex128" -}}
+{{ .ResExp }}, err := strconv.ParseComplex({{ .RawExp }}, 128)
+if err != nil {
+	return {{ .OnError }}, err
+}
+
+{{- else if eq .Type "bool" -}}
+{{ .ResExp }}, err := strconv.ParseBool({{ .RawExp }})
+if err != nil {
+	return {{ .OnError }}, err
+}
+{{- end }}
