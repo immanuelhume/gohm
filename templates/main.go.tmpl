@@ -129,21 +129,6 @@ type {{ .Name.Name }}Filter struct {
 }
 {{ end }}
 
-// For use in redis.HSet. Produces a map from the fields of a struct.
-func mapStruct(i interface{}) map[string]interface{} {
-	v := reflect.ValueOf(i)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	t := v.Type()
-
-	res := make(map[string]interface{})
-	for i := 0; i < v.NumField(); i++ {
-		res[t.Field(i).Name] = v.Field(i).Interface()
-	}
-	return res
-}
-
 // Helper function to insert ':'s for redis keys.
 func genKey(tags ...interface{}) string {
 	n := len(tags)
