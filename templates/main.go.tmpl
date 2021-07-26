@@ -55,53 +55,53 @@ func({{ $rcv }} *{{ .Name.Name }}) Save(ctx context.Context, {{ $lower }} *{{ .N
 		_pipe.SAdd(ctx, genKey("{{ .Name.Name }}", k, v), _enKey)
 	}
 	_pipe.HSet(ctx, _enKey, _vMap)
-	
+
 	_, err := _pipe.Exec(ctx)
 	return err
 }
 
 // Returns as a slice all {{ .Name.Name }}(s) which fulfill the provided filter conditions.
 func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Name.Name }}Filter) ([]{{ .NamespacedEntity }}, error) {
-	v := reflect.ValueOf(filter).Elem()
-	t := reflect.TypeOf(filter).Elem()
+	_v := reflect.ValueOf(filter).Elem()
+	_t := reflect.TypeOf(filter).Elem()
 
-	pipe := {{ $rcv }}.rdb.Pipeline()
-	var cmds []*redis.StringSliceCmd
-	var hits [][]string
+	_pipe := {{ $rcv }}.rdb.Pipeline()
+	var _cmds []*redis.StringSliceCmd
+	var _hits [][]string
 
-	var raw []*redis.StringStringMapCmd
+	var _raw []*redis.StringStringMapCmd
 	var _results []{{ .NamespacedEntity }}
 
-	for i := 0; i < v.NumField(); i++ {
-		val := v.Field(i)
-		if val.IsNil() {
+	for i := 0; i < _v.NumField(); i++ {
+		_val := _v.Field(i)
+		if _val.IsNil() {
 			continue
 		}
-		field := t.Field(i).Name
+		_field := _t.Field(i).Name
 
-		key := genKey("{{ .Name.Name }}", field, val.Elem())
-		cmds = append(cmds, pipe.SMembers(ctx, key))
+		_key := genKey("{{ .Name.Name }}", _field, _val.Elem())
+		_cmds = append(_cmds, _pipe.SMembers(ctx, _key))
 	}
 
-	_, err := pipe.Exec(ctx)
+	_, err := _pipe.Exec(ctx)
 	if err != nil {
 		return []{{ .NamespacedEntity }}{}, err
 	}
 
-	for _, cmd := range cmds {
-		hits = append(hits, cmd.Val())
+	for _, cmd := range _cmds {
+		_hits = append(_hits, cmd.Val())
 	}
-	keys := intersect(hits...)
+	_keys := intersect(_hits...)
 
-	for _, k := range keys {
-		raw = append(raw, pipe.HGetAll(ctx, k))
+	for _, k := range _keys {
+		_raw = append(_raw, _pipe.HGetAll(ctx, k))
 	}
-	_, err = pipe.Exec(ctx)
+	_, err = _pipe.Exec(ctx)
 	if err != nil {
 		return []{{ .NamespacedEntity }}{}, err
 	}
 
-	for _, m := range raw {
+	for _, m := range _raw {
 		v := m.Val()
 
 		{{ range .LsFields -}}
