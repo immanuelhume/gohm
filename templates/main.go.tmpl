@@ -10,13 +10,13 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
-	{{ .TemplateImports }}
+	{{ .TImports }}
 )
 
 type GohmClient struct {
 	*redis.Client
 
-	{{ .TemplateGohmFields }}
+	{{ .TGohmFields }}
 }
 
 // Works just like redis.NewClient and returns a Redis client.
@@ -36,17 +36,17 @@ func NewClient(opt *redis.Options) *GohmClient {
 {{ range .Entities }}
 {{ $lower := toLower .Name.Name }}
 {{ $rcv := toReceiverCase .Name.Name}}
-{{ $ns := .NamespacedEntity }}
+{{ $ns := .TNamespacedEntity }}
 type {{ .Name.Name }} struct {
 	rdb *redis.Client
 }
 
 // Saves one {{ .Name.Name }} into Redis. Returns either an error or nil.
-func({{ $rcv }} *{{ .Name.Name }}) Save(ctx context.Context, {{ $lower }} *{{ .NamespacedEntity }}) error {
+func({{ $rcv }} *{{ .Name.Name }}) Save(ctx context.Context, {{ $lower }} *{{ .TNamespacedEntity }}) error {
 	_pipe := {{ $rcv }}.rdb.Pipeline()
 	_enKey := genKey("{{ .Name.Name }}", uuid.NewString())
 	_vMap := make(map[string]interface{})
-	{{ range .LsFields }}
+	{{ range .TLsFields }}
 	{{ $raw := .Name | printf "%s.%s" $lower -}}
 	_vMap["{{ .Name }}"] = {{ template "to-string.go.tmpl" newMarshallData . $raw .Name "nil" -}} 
 	{{ end }}
@@ -61,7 +61,7 @@ func({{ $rcv }} *{{ .Name.Name }}) Save(ctx context.Context, {{ $lower }} *{{ .N
 }
 
 // Returns as a slice all {{ .Name.Name }}(s) which fulfill the provided filter conditions.
-func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Name.Name }}Filter) ([]{{ .NamespacedEntity }}, error) {
+func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Name.Name }}Filter) ([]{{ .TNamespacedEntity }}, error) {
 	_v := reflect.ValueOf(filter).Elem()
 	_t := reflect.TypeOf(filter).Elem()
 
@@ -70,7 +70,7 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 	var _hits [][]string
 
 	var _raw []*redis.StringStringMapCmd
-	var _results []{{ .NamespacedEntity }}
+	var _results []{{ .TNamespacedEntity }}
 
 	for i := 0; i < _v.NumField(); i++ {
 		_val := _v.Field(i)
@@ -85,7 +85,7 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 
 	_, err := _pipe.Exec(ctx)
 	if err != nil {
-		return []{{ .NamespacedEntity }}{}, err
+		return []{{ .TNamespacedEntity }}{}, err
 	}
 
 	for _, cmd := range _cmds {
@@ -98,19 +98,19 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 	}
 	_, err = _pipe.Exec(ctx)
 	if err != nil {
-		return []{{ .NamespacedEntity }}{}, err
+		return []{{ .TNamespacedEntity }}{}, err
 	}
 
 	for _, m := range _raw {
 		v := m.Val()
 
-		{{ range .LsFields -}}
+		{{ range .TLsFields -}}
 		{{ $raw := .Name | printf "v[%q]" -}}
 		{{ template "from-string.go.tmpl" newMarshallData . $raw .Name "nil" }}
 		{{ end }}
 
-		{{ $rcv }} := {{ .NamespacedEntity }}{
-			{{ range .LsFields }}
+		{{ $rcv }} := {{ .TNamespacedEntity }}{
+			{{ range .TLsFields }}
 			{{- .Name }}: {{ .Name }},
 			{{ end }}
 		}
@@ -123,7 +123,7 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 // Utility type used for searching {{ .Name.Name }} entities. Every field
 // must be a pointer to differentiate between zero-values and nil fields.
 type {{ .Name.Name }}Filter struct {
-	{{ range .PtrFields}}
+	{{ range .TPtrFields}}
 	{{- . }}
 	{{ end }}
 }
