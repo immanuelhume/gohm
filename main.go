@@ -9,9 +9,8 @@ import (
 	"strings"
 )
 
-// TODO: marshall basic types
-// TODO: check validity of types at generation time
 // unsupported types: byte, rune
+// TODO: figure out how to add those dependencies
 
 var logger *log.Logger = log.New(os.Stderr, "Gohm: ", 0)
 

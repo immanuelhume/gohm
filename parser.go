@@ -79,12 +79,15 @@ func CollectEntities(dir string) []Entity {
 	return v.Entities
 }
 
+// These types are not supported. They cannot be sensibly marshalled into a string
+// format and stored in Redis.
+var badTypes = map[string]bool{
+	"byte": true,
+	"rune": true,
+}
+
 // Checks a field's
 func (e *Entity) ValidateFieldType() {
-	badTypes := map[string]bool{
-		"byte": true,
-		"rune": true,
-	}
 	for i := 0; i < e.Fields.NumFields(); i++ {
 		t := e.Fields.Field(i).Type().Underlying().String()
 		_, ok := badTypes[t]

@@ -103,7 +103,7 @@ func (td *TemplateData) TGohmFields() string {
 	return names.String()
 }
 
-// Write into the template.
+// Write the template into out.
 func WritePackage(
 	main string,
 	in string,
@@ -134,8 +134,8 @@ type MarshallData struct {
 	OnError string
 }
 
-// Creates a new type containing the necessary information for marshalling
-// to-and-fro strings.
+// Creates a new type containing the necessary information for creating
+// expressions marshalling to-and-fro strings.
 func newMarshallData(f SimpleField, rawExp, resExp, onError string) MarshallData {
 	return MarshallData{f.Type, rawExp, resExp, onError}
 }
