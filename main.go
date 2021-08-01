@@ -4,15 +4,13 @@ import (
 	"bytes"
 	"go/format"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 )
 
 // unsupported types: byte, rune
-// TODO: figure out how to add those dependencies
-
-var logger *log.Logger = log.New(os.Stderr, "Gohm: ", 0)
+// TODO: support composite types
+// TODO: add more pointer conversion functions
 
 func main() {
 	Gen()

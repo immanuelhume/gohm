@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/types"
+	"log"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -48,7 +50,7 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	}
 	// check if it's in package main
 	if pkg.Name == "main" {
-		logger.Fatalf("Cannot read from package main. (type %s in %s)",
+		log.Fatalf("Cannot read from package main. (type %s in %s)",
 			spec.Name.Name, pkg.PkgPath)
 	}
 	// create entity and check each field's type
@@ -81,19 +83,21 @@ func CollectEntities(dir string) []Entity {
 
 // These types are not supported. They cannot be sensibly marshalled into a string
 // format and stored in Redis.
-var badTypes = map[string]bool{
-	"byte": true,
-	"rune": true,
-}
+var badTypes = map[interface{}]bool{}
 
-// Checks a field's
+// Checks if a struct contains any unsupported data types. Exits with error if found.
 func (e *Entity) ValidateFieldType() {
 	for i := 0; i < e.Fields.NumFields(); i++ {
-		t := e.Fields.Field(i).Type().Underlying().String()
-		_, ok := badTypes[t]
-		if ok {
-			logger.Fatalf("Cannot use field of type %s in type %s (%s)",
-				t, e.Name.Name, e.Pkg.PkgPath)
+		t := e.Fields.Field(i).Type().Underlying()
+		switch t := t.(type) {
+		case *types.Basic:
+			_, got := badTypes[t.Kind()]
+			if got {
+				log.Fatalf("Cannot use field of type %s in type %s (%s)",
+					t, e.Name.Name, e.Pkg.PkgPath)
+			}
+		case *types.Array:
+			fmt.Print(t.Elem())
 		}
 	}
 }

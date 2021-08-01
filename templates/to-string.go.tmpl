@@ -1,9 +1,9 @@
-{{ if eq .Type "int" "int8" "int16" "int32" -}}
+{{ if eq .Type "int" "int8" "int16" "int32" "rune" -}}
 strconv.FormatInt(int64({{ .RawExp }}), 10)
 {{- else if eq .Type "int64" -}}
 strconv.FormatInt({{ .RawExp }}, 10)
 
-{{- else if eq .Type "uint" "uint8" "uint16" "uint32" -}}
+{{- else if eq .Type "uint" "uint8" "byte" "uint16" "uint32" -}}
 strconv.FormatUint(uint64({{ .RawExp }}), 10)
 {{- else if eq .Type "uint64" -}}
 strconv.FormatUint({{ .RawExp }}, 10)

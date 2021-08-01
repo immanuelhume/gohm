@@ -15,10 +15,8 @@ import (
 type Entity struct {
 	// package in which the struct is declared
 	Pkg *packages.Package
-
 	// name of this entity
 	Name *ast.Ident
-
 	// contains info on fields
 	Fields *types.Struct
 }
