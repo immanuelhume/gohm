@@ -25,7 +25,7 @@ func NewClient(opt *redis.Options) *GohmClient {
 
 	gohmClient := &GohmClient{
 		redisClient, 
-		{{ range .Entities -}}
+		{{ range .Models -}}
 		&{{ .Name.Name }}{rdb: redisClient},
 		{{ end }}
 		}
@@ -33,44 +33,49 @@ func NewClient(opt *redis.Options) *GohmClient {
 	return gohmClient
 }
 
-{{ range .Entities }}
-{{ $lower := toLower .Name.Name }}
-{{ $rcv := toReceiverCase .Name.Name}}
-{{ $ns := .TNamespacedEntity }}
-type {{ .Name.Name }} struct {
+{{ range .Models -}}
+
+{{ $model := .Name.Name}}
+{{ $nsmodel := .TNamespacedModel }}
+{{ $numodel := lowerFirst .Name.Name }}
+{{ $rcv := toReceiverCase .Name.Name -}}
+
+type {{ $model }} struct {
 	rdb *redis.Client
 }
 
-// Saves one {{ .Name.Name }} into Redis. Returns either an error or nil.
-func({{ $rcv }} *{{ .Name.Name }}) Save(ctx context.Context, {{ $lower }} *{{ .TNamespacedEntity }}) error {
+// Saves one {{ $model }} into Redis. Returns either an error or nil.
+func({{ $rcv }} *{{ $model }}) Save(ctx context.Context, {{ $numodel }} *{{ $nsmodel }}) error {
 	_pipe := {{ $rcv }}.rdb.Pipeline()
-	_enKey := genKey("{{ .Name.Name }}", uuid.NewString())
+	_mKey := genKey("{{ $model }}", uuid.NewString())
 	_vMap := make(map[string]interface{})
 	{{ range .TLsFields }}
-	{{ $raw := .Name | printf "%s.%s" $lower -}}
+	{{ $raw := .Name | printf "%s.%s" $numodel -}}
 	_vMap["{{ .Name }}"] = {{ template "to-string.go.tmpl" newMarshallData . $raw .Name "nil" -}} 
 	{{ end }}
 
 	for k, v := range _vMap {
-		_pipe.SAdd(ctx, genKey("{{ .Name.Name }}", k, v), _enKey)
+		_pipe.SAdd(ctx, genKey("{{ $model }}", k, v), _mKey)
 	}
-	_pipe.HSet(ctx, _enKey, _vMap)
+	_pipe.HSet(ctx, _mKey, _vMap)
 
 	_, err := _pipe.Exec(ctx)
 	return err
 }
 
-// Returns as a slice all {{ .Name.Name }}(s) which fulfill the provided filter conditions.
-func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Name.Name }}SearchOpt) ([]{{ .TNamespacedEntity }}, error) {
+{{ $findopt := printf "%s%s" $model "FindOpt" -}}
+
+// Returns a slice of all {{ $model }} models which fulfill the provided filter conditions.
+func({{ $rcv }} *{{ $model }}) FindMany(ctx context.Context, filter *{{ $findopt }}) ([]{{ $nsmodel }}, error) {
 	_v := reflect.ValueOf(filter).Elem()
-	_t := reflect.TypeOf(filter).Elem()
+	_t := _v.Type()
 
 	_pipe := {{ $rcv }}.rdb.Pipeline()
 	var _cmds []*redis.StringSliceCmd
 	var _hits [][]string
 
 	var _raw []*redis.StringStringMapCmd
-	var _results []{{ .TNamespacedEntity }}
+	var _results []{{ $nsmodel }}
 
 	for i := 0; i < _v.NumField(); i++ {
 		_val := _v.Field(i)
@@ -79,37 +84,37 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 		}
 		_field := _t.Field(i).Name
 
-		_key := genKey("{{ .Name.Name }}", _field, _val.Elem())
+		_key := genKey("{{ $model }}", _field, _val.Elem())
 		_cmds = append(_cmds, _pipe.SMembers(ctx, _key))
 	}
 
 	_, err := _pipe.Exec(ctx)
 	if err != nil {
-		return []{{ .TNamespacedEntity }}{}, err
+		return nil, err
 	}
 
 	for _, cmd := range _cmds {
 		_hits = append(_hits, cmd.Val())
 	}
-	_keys := intersect(_hits...)
+	_keys := intersect(_hits)
 
 	for _, k := range _keys {
 		_raw = append(_raw, _pipe.HGetAll(ctx, k))
 	}
 	_, err = _pipe.Exec(ctx)
 	if err != nil {
-		return []{{ .TNamespacedEntity }}{}, err
+		return nil, err
 	}
 
 	for _, m := range _raw {
 		v := m.Val()
 
 		{{ range .TLsFields -}}
-		{{ $raw := .Name | printf "v[%q]" -}}
+		{{ $raw := printf "v[%q]" .Name -}}
 		{{ template "from-string.go.tmpl" newMarshallData . $raw .Name "nil" }}
 		{{ end }}
 
-		{{ $rcv }} := {{ .TNamespacedEntity }}{
+		{{ $rcv }} := {{ $nsmodel }}{
 			{{ range .TLsFields }}
 			{{- .Name }}: {{ .Name }},
 			{{ end }}
@@ -120,14 +125,15 @@ func({{ $rcv }} *{{ .Name.Name }}) FindMany(ctx context.Context, filter *{{ .Nam
 	return _results, nil
 }
 
-// Utility type used for searching {{ .Name.Name }} entities. Every field
-// must be a pointer to differentiate between zero-values and nil fields.
-type {{ .Name.Name }}SearchOpt struct {
+// Utility type used for searching {{ $model }} models. Every field must be a pointer 
+// to differentiate between zero-values and nil fields.
+type {{ $findopt }} struct {
 	{{ range .TPtrFields}}
 	{{- . }}
 	{{ end }}
 }
-{{ end }}
+
+{{- end }}
 
 // Helper function to insert ':'s for redis keys.
 func genKey(tags ...interface{}) string {
@@ -141,7 +147,7 @@ func genKey(tags ...interface{}) string {
 }
 
 // Finds the intersection of n slices.
-func intersect(slices ...[]string) []string {
+func intersect(slices [][]string) []string {
 	if len(slices) == 1 {
 		return slices[0]
 	}

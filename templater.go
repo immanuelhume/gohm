@@ -11,11 +11,11 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// An Entity contains raw syntax information for a gohm-tagged struct.
-type Entity struct {
+// An Model contains raw syntax information for a gohm-tagged struct.
+type Model struct {
 	// package in which the struct is declared
 	Pkg *packages.Package
-	// name of this entity
+	// name of this model
 	Name *ast.Ident
 	// contains info on fields
 	Fields *types.Struct
@@ -28,46 +28,46 @@ type SimpleField struct {
 
 // Shape of the data we're gonna pass into our template file.
 type TemplateData struct {
-	Entities []Entity
+	Models []Model
 }
 
 // Constructs the type with its package.
-func (e *Entity) TNamespacedEntity() string {
-	return fmt.Sprintf("%s.%s", e.Pkg.Name, e.Name.Name)
+func (m *Model) TNamespacedModel() string {
+	return fmt.Sprintf("%s.%s", m.Pkg.Name, m.Name.Name)
 }
 
-// Generates a slice of strings to denote each field of
-// the struct as a pointer.
-func (e *Entity) TPtrFields() []string {
+// Generates a slice of strings denoting each field of
+// the model as a pointer.
+func (m *Model) TPtrFields() []string {
 	// TODO: handle case where field is already a pointer
 	fields := []string{}
-	for i := 0; i < e.Fields.NumFields(); i++ {
-		f := e.Fields.Field(i)
+	for i := 0; i < m.Fields.NumFields(); i++ {
+		f := m.Fields.Field(i)
 		line := fmt.Sprintf("%s *%s", f.Name(), f.Type().String())
 		fields = append(fields, line)
 	}
 	return fields
 }
 
-// LsFields returns the fields on an entity as a slice of SimpleField(s).
-func (e *Entity) TLsFields() []SimpleField {
+// LsFields returns the fields on a model as a slice of SimpleField(s).
+func (m *Model) TLsFields() []SimpleField {
 	var fds []SimpleField
-	for i := 0; i < e.Fields.NumFields(); i++ {
-		f := e.Fields.Field(i)
+	for i := 0; i < m.Fields.NumFields(); i++ {
+		f := m.Fields.Field(i)
 		fds = append(fds, SimpleField{f.Name(), f.Type().String()})
 	}
 	return fds
 }
 
-// Collects all the unique packages for entities in a set.
+// Collects all the unique packages for models in a set.
 func (td *TemplateData) Packages() map[*packages.Package]bool {
 	paths := map[*packages.Package]bool{}
-	for _, en := range td.Entities {
-		_, ok := paths[en.Pkg]
+	for _, m := range td.Models {
+		_, ok := paths[m.Pkg]
 		if ok {
 			continue
 		}
-		paths[en.Pkg] = true
+		paths[m.Pkg] = true
 	}
 	return paths
 }
@@ -82,20 +82,20 @@ func (td *TemplateData) TImports() string {
 	return str.String()
 }
 
-// Collects raw names of entities.
-func (td *TemplateData) EntityNames() []string {
+// Collects raw names of models.
+func (td *TemplateData) ModelNames() []string {
 	names := []string{}
-	for _, en := range td.Entities {
-		names = append(names, en.Name.Name)
+	for _, m := range td.Models {
+		names = append(names, m.Name.Name)
 	}
 	return names
 }
 
-// Writes entity names for template. This is used when constructing the
+// Writes model names for template. This is used when constructing the
 // new client.
 func (td *TemplateData) TGohmFields() string {
 	var names strings.Builder
-	for _, name := range td.EntityNames() {
+	for _, name := range td.ModelNames() {
 		names.WriteString(fmt.Sprintf("%s *%s\n", name, name))
 	}
 	return names.String()
@@ -122,6 +122,11 @@ func WritePackage(
 // Extracts first letter of word as lower-case.
 func toReceiverCase(thing string) string {
 	return strings.ToLower(string(thing[0]))
+}
+
+// Lowers the first character of a string.
+func lowerFirst(s string) string {
+	return strings.ToLower(string(s[0])) + s[1:]
 }
 
 // Utility type for templating string conversions.
