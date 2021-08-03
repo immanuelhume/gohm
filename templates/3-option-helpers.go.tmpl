@@ -1,0 +1,9 @@
+{{ $model := .Name.Name }}
+{{ $findopt := printf "%sFindOpt" $model -}}
+
+// Utility type for searching {{ $model }} models.
+type {{ $findopt }} struct {
+	{{ range .Fields }}
+	{{ .Name }} *{{ .Type.String -}}
+	{{ end }}
+}

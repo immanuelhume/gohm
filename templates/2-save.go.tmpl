@@ -1,0 +1,22 @@
+{{ $model := .Name.Name }}
+{{ $nsmodel := .TNamespacedModel }}
+{{ $numodel := lowerFirst .Name.Name }}
+{{ $rcv := toReceiverCase .Name.Name -}}
+
+// Saves one {{ $model }} into Redis. Returns either an error or nil.
+func({{ $rcv }} *{{ $model }}) Save(ctx context.Context, {{ $numodel }} *{{ $nsmodel }}) error {
+	_pipe := {{ $rcv }}.rdb.Pipeline()
+	_mKey := genKey("{{ $model }}", uuid.NewString())
+	_vMap, err := stringify{{ $model }}({{ $numodel }})
+	if err != nil {
+		return err
+	}
+
+	for k, v := range _vMap {
+		_pipe.SAdd(ctx, genKey("{{ $model }}", k, v), _mKey)
+	}
+	_pipe.HSet(ctx, _mKey, _vMap)
+
+	_, err = _pipe.Exec(ctx)
+	return err
+}

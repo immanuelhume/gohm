@@ -1,0 +1,57 @@
+// Helper function to insert ':'s for redis keys.
+func genKey(tags ...interface{}) string {
+	n := len(tags)
+	sl := []string{}
+	for i := 0; i < n; i++ {
+		sl = append(sl, "%v")
+	}
+	format := strings.Join(sl, ":")
+	return fmt.Sprintf(format, tags...)
+}
+
+// Finds the intersection of n slices.
+func intersect(slices [][]string) []string {
+	if len(slices) == 1 {
+		return slices[0]
+	}
+
+	head := make(map[string]bool)
+
+	for _, v := range slices[0] {
+		head[v] = true
+	}
+	for _, sl := range slices[1:] {
+		var hits []string
+		for _, v := range sl {
+			_, ok := head[v]
+			if ok {
+				hits = append(hits, v)
+			}
+		}
+		head = map[string]bool{}
+		for _, v := range hits {
+			head[v] = true
+		}
+	}
+
+	var res []string
+	for k := range head {
+		res = append(res, k)
+	}
+	return res
+}
+
+// Bool stores v in a new bool value and returns a pointer to it.
+func Bool(v bool) *bool { return &v }
+
+// Int stores v in a new int value and returns a pointer to it.
+func Int(v int) *int { return &v }
+
+// Float32 stores v in a new float32 value and returns a pointer to it.
+func Float32(v float32) *float32 { return &v }
+
+// Float64 stores v in a new float64 value and returns a pointer to it.
+func Float64(v float64) *float64 { return &v }
+
+// String stores v in a new string value and returns a pointer to it.
+func String(v string) *string { return &v }
