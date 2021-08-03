@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"go/ast"
 	"go/types"
 	"log"
@@ -17,7 +16,8 @@ type Visitor struct {
 }
 
 // Visit will add nodes which are a struct type tagged with the // gohm
-// comment. All other nodes are ignored.
+// comment. All other nodes are ignored. A Model type is constructed and added
+// to a slice.
 func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	// cast to GenDecl
 	gd, ok := node.(*ast.GenDecl)
@@ -55,11 +55,19 @@ Please place the model in a package that isn't main.`,
 			spec.Name.Name, pkg.PkgPath)
 	}
 	// create model and check each field's type
-	m := Model{Pkg: pkg, Name: spec.Name, Fields: tobj}
-	m.ValidateFieldType()
+	m := Model{Pkg: pkg, Name: spec.Name, Fields: CollectFields(tobj)}
+	m.ValidateFields()
 
 	v.Models = append(v.Models, m)
 	return v
+}
+
+func CollectFields(s *types.Struct) []*types.Var {
+	var fields []*types.Var
+	for i := 0; i < s.NumFields(); i++ {
+		fields = append(fields, s.Field(i))
+	}
+	return fields
 }
 
 // CollectModels takes a root directory and returns all models found
@@ -86,10 +94,10 @@ func CollectModels(dir string) []Model {
 // and stored in Redis.
 var badTypes = map[interface{}]bool{}
 
-// Checks if a struct contains any unsupported data types. Exits with error if found.
-func (m *Model) ValidateFieldType() {
-	for i := 0; i < m.Fields.NumFields(); i++ {
-		t := m.Fields.Field(i).Type().Underlying()
+// Validates each field. Exits if a problem was discovered.
+func (m *Model) ValidateFields() {
+	for _, field := range m.Fields {
+		t := field.Type().Underlying()
 		switch t := t.(type) {
 		case *types.Basic:
 			_, got := badTypes[t.Kind()]
@@ -97,8 +105,6 @@ func (m *Model) ValidateFieldType() {
 				log.Fatalf("Cannot use field of type %s in type %s (%s)",
 					t, m.Name.Name, m.Pkg.PkgPath)
 			}
-		case *types.Array:
-			fmt.Print(t.Elem())
 		}
 	}
 }

@@ -17,8 +17,8 @@ type Model struct {
 	Pkg *packages.Package
 	// name of this model
 	Name *ast.Ident
-	// contains info on fields
-	Fields *types.Struct
+	// Each field is represented by a *types.Var variable
+	Fields []*types.Var
 }
 
 type SimpleField struct {
@@ -40,20 +40,18 @@ func (m *Model) TNamespacedModel() string {
 // the model as a pointer.
 func (m *Model) TPtrFields() []string {
 	// TODO: handle case where field is already a pointer
-	fields := []string{}
-	for i := 0; i < m.Fields.NumFields(); i++ {
-		f := m.Fields.Field(i)
+	ptrFields := []string{}
+	for _, f := range m.Fields {
 		line := fmt.Sprintf("%s *%s", f.Name(), f.Type().String())
-		fields = append(fields, line)
+		ptrFields = append(ptrFields, line)
 	}
-	return fields
+	return ptrFields
 }
 
 // LsFields returns the fields on a model as a slice of SimpleField(s).
 func (m *Model) TLsFields() []SimpleField {
 	var fds []SimpleField
-	for i := 0; i < m.Fields.NumFields(); i++ {
-		f := m.Fields.Field(i)
+	for _, f := range m.Fields {
 		fds = append(fds, SimpleField{f.Name(), f.Type().String()})
 	}
 	return fds
@@ -141,4 +139,32 @@ type MarshallData struct {
 // expressions marshalling to-and-fro strings.
 func newMarshallData(f SimpleField, rawExp, resExp, onError string) MarshallData {
 	return MarshallData{f.Type, rawExp, resExp, onError}
+}
+
+// For each field, generate code which loads the appropriate string
+// representation into a map.
+func TStringifyField(mapName string, f *types.Var, raw string) string {
+	switch t := f.Type().Underlying().(type) {
+	case *types.Basic:
+		switch t.Kind() {
+		case types.Int, types.Int8, types.Int16, types.Int32, types.Int64:
+			return fmt.Sprintf("%s[%q] = strconv.FormatInt(int64(%s), 10)", mapName, f.Name(), raw)
+		case types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64:
+			return fmt.Sprintf("%s[%q] = strconv.FormatUint(uint64(%s), 10)", mapName, f.Name(), raw)
+		case types.Float32:
+			return fmt.Sprintf("%s[%q] = strconv.FormatFloat(float64(%s), 'E', -1, 32)", mapName, f.Name(), raw)
+		case types.Float64:
+			return fmt.Sprintf("%s[%q] = strconv.FormatFloat(%s, 'E', -1, 64)", mapName, f.Name(), raw)
+		case types.Complex64:
+			return fmt.Sprintf("%s[%q] = strconv.FormatComplex(complex128(%s), 'E', -1, 64)", mapName, f.Name(), raw)
+		case types.Complex128:
+			return fmt.Sprintf("%s[%q] = strconv.FormatComplex(%s, 'E', -1, 128)", mapName, f.Name(), raw)
+		case types.Bool:
+			return fmt.Sprintf("%s[%q] = strconv.FormatBool(%s)", mapName, f.Name(), raw)
+		default:
+			return fmt.Sprintf("%s[%q] = %s", mapName, f.Name(), raw)
+		}
+	default:
+		return ""
+	}
 }

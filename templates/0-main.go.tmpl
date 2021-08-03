@@ -48,18 +48,17 @@ type {{ $model }} struct {
 func({{ $rcv }} *{{ $model }}) Save(ctx context.Context, {{ $numodel }} *{{ $nsmodel }}) error {
 	_pipe := {{ $rcv }}.rdb.Pipeline()
 	_mKey := genKey("{{ $model }}", uuid.NewString())
-	_vMap := make(map[string]interface{})
-	{{ range .TLsFields }}
-	{{ $raw := .Name | printf "%s.%s" $numodel -}}
-	_vMap["{{ .Name }}"] = {{ template "to-string.go.tmpl" newMarshallData . $raw .Name "nil" -}} 
-	{{ end }}
+	_vMap, err := stringify{{ $model }}({{ $numodel }})
+	if err != nil {
+		return err
+	}
 
 	for k, v := range _vMap {
 		_pipe.SAdd(ctx, genKey("{{ $model }}", k, v), _mKey)
 	}
 	_pipe.HSet(ctx, _mKey, _vMap)
 
-	_, err := _pipe.Exec(ctx)
+	_, err = _pipe.Exec(ctx)
 	return err
 }
 
@@ -124,6 +123,8 @@ func({{ $rcv }} *{{ $model }}) FindMany(ctx context.Context, filter *{{ $findopt
 	}
 	return _results, nil
 }
+
+{{ template "stringify-struct" . }}
 
 // Utility type used for searching {{ $model }} models. Every field must be a pointer 
 // to differentiate between zero-values and nil fields.

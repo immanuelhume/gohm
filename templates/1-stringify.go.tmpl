@@ -1,0 +1,15 @@
+{{- define "stringify-struct" -}}
+{{ $nsmodel := .TNamespacedModel -}}
+{{ $in := toReceiverCase .Name.Name -}}
+// Takes a {{ .Name }} struct and returns a map with each field stringified.
+func stringify{{ .Name }}({{ $in }} *{{ $nsmodel }}) (map[string]interface{}, error) {
+	_vMap := make(map[string]interface{})
+
+	{{ range .Fields }}
+	{{ $raw := printf "%s.%s" $in .Name -}}
+	{{ TStringifyField "_vMap" . $raw -}}
+	{{ end }}
+
+	return _vMap, nil
+}
+{{- end -}}
