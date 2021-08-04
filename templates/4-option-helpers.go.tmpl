@@ -3,7 +3,7 @@
 
 // Utility type for searching {{ $model }} models.
 type {{ $findopt }} struct {
-	{{ range .Fields }}
-	{{ .Name }} *{{ .Type.String -}}
-	{{ end }}
+	{{- range .Fields -}}
+	{{ .Name }} *{{ .Type.String }}
+	{{ end -}}
 }

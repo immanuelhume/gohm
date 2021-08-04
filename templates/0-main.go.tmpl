@@ -20,7 +20,7 @@ type GohmClient struct {
 
 	{{ range .Models -}}
 	{{ .Name.Name }} *{{ .Name.Name }}
-	{{ end }}
+	{{ end -}}
 }
 
 // Works just like redis.NewClient and returns a Redis client.
@@ -28,10 +28,10 @@ func NewClient(opt *redis.Options) *GohmClient {
 	redisClient := redis.NewClient(opt)
 
 	gohmClient := &GohmClient{
-		redisClient, 
+		redisClient,
 		{{ range .Models -}}
 		&{{ .Name.Name }}{rdb: redisClient},
-		{{ end }}
+		{{ end -}}
 		}
 	
 	return gohmClient
@@ -39,82 +39,20 @@ func NewClient(opt *redis.Options) *GohmClient {
 
 {{ range .Models -}}
 
-{{ $model := .Name.Name }}
-{{ $nsmodel := printf "%s.%s" .Pkg.Name .Name.Name }}
-{{ $numodel := lowerFirst .Name.Name }}
-{{ $rcv := toReceiverCase .Name.Name }}
-{{ $findopt := printf "%s%s" $model "FindOpt" -}}
+{{ $model := .Name.Name -}}
 
 type {{ $model }} struct {
 	rdb *redis.Client
 }
 
-{{ template "2-save.go.tmpl" . }}
+{{ template "save" . }}
 
-// Returns a slice of all {{ $model }} models which fulfill the provided filter conditions.
-func({{ $rcv }} *{{ $model }}) FindMany(ctx context.Context, filter *{{ $findopt }}) ([]{{ $nsmodel }}, error) {
-	_v := reflect.ValueOf(filter).Elem()
-	_t := _v.Type()
-
-	_pipe := {{ $rcv }}.rdb.Pipeline()
-	var _cmds []*redis.StringSliceCmd
-	var _hits [][]string
-
-	var _raw []*redis.StringStringMapCmd
-	var _results []{{ $nsmodel }}
-
-	for i := 0; i < _v.NumField(); i++ {
-		_val := _v.Field(i)
-		if _val.IsNil() {
-			continue
-		}
-		_field := _t.Field(i).Name
-
-		_key := genKey("{{ $model }}", _field, _val.Elem())
-		_cmds = append(_cmds, _pipe.SMembers(ctx, _key))
-	}
-
-	_, err := _pipe.Exec(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, cmd := range _cmds {
-		_hits = append(_hits, cmd.Val())
-	}
-	_keys := intersect(_hits)
-
-	for _, k := range _keys {
-		_raw = append(_raw, _pipe.HGetAll(ctx, k))
-	}
-	_, err = _pipe.Exec(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, m := range _raw {
-		v := m.Val()
-
-		{{ range .TLsFields -}}
-		{{ $raw := printf "v[%q]" .Name -}}
-		{{ template "from-string.go.tmpl" newMarshallData . $raw .Name "nil" }}
-		{{ end }}
-
-		{{ $rcv }} := {{ $nsmodel }}{
-			{{ range .TLsFields }}
-			{{- .Name }}: {{ .Name }},
-			{{ end }}
-		}
-		
-		_results = append(_results, {{ $rcv }})
-	}
-	return _results, nil
-}
+{{ template "find-many" . }}
 
 {{ template "stringify-struct" . }}
 
-{{ template "3-option-helpers.go.tmpl" . }}
+{{ template "4-option-helpers.go.tmpl" . }}
 
-{{- end }}
+{{ end -}}
 
-{{ template "4-generic-helpers.go.tmpl" }}
+{{ template "5-generic-helpers.go.tmpl" }}

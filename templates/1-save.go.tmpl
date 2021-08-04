@@ -1,6 +1,8 @@
-{{ $model := .Name.Name }}
-{{ $nsmodel := printf "%s.%s" .Pkg.Name .Name.Name }}
-{{ $numodel := lowerFirst .Name.Name }}
+{{- define "save" -}}
+
+{{ $model := .Name.Name -}}
+{{ $nsmodel := printf "%s.%s" .Pkg.Name .Name.Name -}}
+{{ $numodel := lowerFirst .Name.Name -}}
 {{ $rcv := toReceiverCase .Name.Name -}}
 
 // Saves one {{ $model }} into Redis. Returns either an error or nil.
@@ -20,3 +22,4 @@ func({{ $rcv }} *{{ $model }}) Save(ctx context.Context, {{ $numodel }} *{{ $nsm
 	_, err = _pipe.Exec(ctx)
 	return err
 }
+{{- end -}}
