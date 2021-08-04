@@ -5,7 +5,7 @@
 {{ $numodel := lowerFirst .Name.Name -}}
 {{ $rcv := toReceiverCase .Name.Name -}}
 
-// Saves one {{ $model }} into Redis. Returns either an error or nil.
+// Save inserts one {{ $model }} into Redis. Returns either an error or nil.
 func({{ $rcv }} *{{ $model }}) Save(ctx context.Context, {{ $numodel }} *{{ $nsmodel }}) error {
 	_pipe := {{ $rcv }}.rdb.Pipeline()
 	_mKey := genKey("{{ $model }}", uuid.NewString())

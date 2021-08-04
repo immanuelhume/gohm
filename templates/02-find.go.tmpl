@@ -6,7 +6,7 @@
 {{ $rcv := toReceiverCase .Name.Name -}}
 {{ $findopt := printf "%s%s" $model "FindOpt" -}}
 
-// Returns a slice of all {{ $model }} models which fulfill the provided conditions.
+// FindMany returns a slice of all {{ $model }} models which fulfill the provided conditions.
 func({{ $rcv }} *{{ $model }}) FindMany(ctx context.Context, options *{{ $findopt }}) ([]{{ $nsmodel }}, error) {
 	_v := reflect.ValueOf(options).Elem()
 	_t := _v.Type()

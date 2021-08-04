@@ -2,7 +2,7 @@
 {{ $numodel := lowerFirst .Name.Name -}}
 {{ $in := toReceiverCase .Name.Name -}}
 
-// Takes a {{ .Name }} struct and returns a map with each field stringified.
+// stringify{{ .Name}} takes a {{ .Name }} struct and returns a map with each field stringified.
 func stringify{{ .Name }}({{ $in }} *{{ $nsmodel }}) (map[string]interface{}, error) {
 	_vMap := make(map[string]interface{})
 
@@ -14,7 +14,7 @@ func stringify{{ .Name }}({{ $in }} *{{ $nsmodel }}) (map[string]interface{}, er
 	return _vMap, nil
 }
 
-// Parses a {{ $nsmodel }} type from Redis data.
+// parse{{ .Name }} parses a {{ $nsmodel }} type from Redis data.
 func parse{{ .Name }}(raw map[string]string) ({{ $nsmodel }}, error) {
 	{{ range .Fields -}}
 	{{ $raw := printf "raw[%q]" .Name -}}

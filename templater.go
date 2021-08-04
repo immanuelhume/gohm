@@ -69,20 +69,6 @@ func lowerFirst(s string) string {
 	return strings.ToLower(string(s[0])) + s[1:]
 }
 
-// Utility type for templating string conversions.
-type MarshallData struct {
-	Type    string
-	RawExp  string
-	ResExp  string
-	OnError string
-}
-
-// Creates a new type containing the necessary information for creating
-// expressions marshalling to-and-fro strings.
-func newMarshallData(f SimpleField, rawExp, resExp, onError string) MarshallData {
-	return MarshallData{f.Type, rawExp, resExp, onError}
-}
-
 // For each field, generate code which loads the appropriate string
 // representation into a map. I want to make use of type switching and code
 // auto-completion, so this part is not in the template.
@@ -116,9 +102,9 @@ func TStringifyField(mapName string, f *types.Var, raw string) string {
 // representation in Redis, attempt to return code converting to its actual
 // Go type. The value is stored in a variable with the same name as the field.
 //
-// To generate the corresponding code we need to supply two string expressions:
-// 1) @raw is the expression used to access the string value, and 2) @onError is
-// the expression returned if an error is caught.
+// To generate the corresponding code we need to supply two string expressions
+// as arguments: 1) `raw` is the expression used to access the string value,
+// and 2) `onError` is the expression returned if an error is caught.
 func TParseField(f *types.Var, raw, onError string) string {
 	fname := f.Name()
 	switch t := f.Type().Underlying().(type) {

@@ -40,11 +40,10 @@ func Gen() {
 	}
 	td := CollectTemplateData(dir)
 	b := &bytes.Buffer{}
-	WritePackage("0-main.go.tmpl", "templates/*", b, td, map[string]interface{}{
+	WritePackage("00-main.go.tmpl", "templates/*", b, td, map[string]interface{}{
 		"toReceiverCase":  toReceiverCase,
 		"lowerFirst":      lowerFirst,
 		"toLower":         strings.ToLower,
-		"newMarshallData": newMarshallData,
 		"TStringifyField": TStringifyField,
 		"TParseField":     TParseField,
 	})

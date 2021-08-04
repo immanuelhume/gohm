@@ -1,4 +1,4 @@
-// Helper function to insert ':'s for redis keys.
+// genKey is a helper function to insert ':'s for redis keys.
 func genKey(tags ...interface{}) string {
 	n := len(tags)
 	sl := []string{}
@@ -9,7 +9,7 @@ func genKey(tags ...interface{}) string {
 	return fmt.Sprintf(format, tags...)
 }
 
-// Finds the intersection of n slices.
+// intersect finds the intersection of n string slices. When will generics arrive? owo
 func intersect(slices [][]string) []string {
 	if len(slices) == 1 {
 		return slices[0]
