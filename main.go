@@ -46,6 +46,7 @@ func Gen() {
 		"toLower":         strings.ToLower,
 		"newMarshallData": newMarshallData,
 		"TStringifyField": TStringifyField,
+		"TParseField":     TParseField,
 	})
 	src, err := format.Source(b.Bytes())
 	if err != nil {

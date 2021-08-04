@@ -111,3 +111,109 @@ func TStringifyField(mapName string, f *types.Var, raw string) string {
 		return ""
 	}
 }
+
+// TParseField is the reverse of TStringField. For each field's string
+// representation in Redis, attempt to return code converting to its actual
+// Go type. The value is stored in a variable with the same name as the field.
+//
+// To generate the corresponding code we need to supply two string expressions:
+// 1) @raw is the expression used to access the string value, and 2) @onError is
+// the expression returned if an error is caught.
+func TParseField(f *types.Var, raw, onError string) string {
+	fname := f.Name()
+	switch t := f.Type().Underlying().(type) {
+	case *types.Basic:
+		switch t.Kind() {
+		case types.Int:
+			return fmt.Sprintf(`%s, err := strconv.Atoi(%s)
+if err != nil {
+	return %s, err
+}`, fname, raw, onError)
+		case types.Int8:
+			return fmt.Sprintf(`_%s, err := strconv.ParseInt(%s, 10, 8)
+if err != nil {
+	return %s, err
+}
+%s := int8(_%s)`, fname, raw, onError, fname, fname)
+		case types.Int16:
+			return fmt.Sprintf(`_%s, err := strconv.ParseInt(%s, 10, 16)
+if err != nil {
+	return %s, err
+}
+%s := int16(_%s)`, fname, raw, onError, fname, fname)
+		case types.Int32:
+			return fmt.Sprintf(`_%s, err := strconv.ParseInt(%s, 10, 32)
+if err != nil {
+	return %s, err
+}
+%s := int32(_%s)`, fname, raw, onError, fname, fname)
+		case types.Int64:
+			return fmt.Sprintf(`%s, err := strconv.ParseInt(%s, 10, 64)
+if err != nil {
+	return %s, err
+}`, fname, raw, onError)
+		case types.Uint:
+			return fmt.Sprintf(`_%s, err := strconv.ParseUint(%s, 10, 64)
+if err != nil {
+	return %s, err
+}
+%s := uint(_%s)`, fname, raw, onError, fname, fname)
+		case types.Uint8:
+			return fmt.Sprintf(`_%s, err := strconv.ParseUint(%s, 10, 8)
+if err != nil {
+	return %s, err
+}
+%s := uint8(_%s)`, fname, raw, onError, fname, fname)
+		case types.Uint16:
+			return fmt.Sprintf(`_%s, err := strconv.ParseUint(%s, 10, 16)
+if err != nil {
+	return %s, err
+}
+%s := uint16(_%s)`, fname, raw, onError, fname, fname)
+		case types.Uint32:
+			return fmt.Sprintf(`_%s, err := strconv.ParseUint(%s, 10, 32)
+if err != nil {
+	return %s, err
+}
+%s := uint32(_%s)`, fname, raw, onError, fname, fname)
+		case types.Uint64:
+			return fmt.Sprintf(`%s, err := strconv.ParseUint(%s, 10, 64)
+if err != nil {
+	return %s, err
+}`, fname, raw, onError)
+		case types.Float32:
+			return fmt.Sprintf(`_%s, err := strconv.ParseFloat(%s, 32)
+if err != nil {
+	return %s, err
+}
+%s := float32(_%s)`, fname, raw, onError, fname, fname)
+		case types.Float64:
+			return fmt.Sprintf(`%s, err := strconv.ParseFloat(%s, 64)
+if err != nil {
+	return %s, err
+}`, fname, raw, onError)
+		case types.String:
+			return fmt.Sprintf(`%s := %s`, fname, raw)
+		case types.Complex64:
+			return fmt.Sprintf(`_%s, err := strconv.ParseComplex(%s, 64)
+if err != nil {
+	return %s, err
+}
+%s := complex64(_%s)`, fname, raw, onError, fname, fname)
+		case types.Complex128:
+			return fmt.Sprintf(`%s, err := strconv.ParseComplex(%s, 128)
+if err != nil {
+	return %s, err
+}`, fname, raw, onError)
+		case types.Bool:
+			return fmt.Sprintf(`%s, err := strconv.ParseBool(%s)
+if err != nil {
+	return %s, err
+}`, fname, raw, onError)
+		default:
+			return raw
+		}
+	default:
+		return raw
+	}
+}

@@ -51,19 +51,11 @@ func({{ $rcv }} *{{ $model }}) FindMany(ctx context.Context, options *{{ $findop
 
 	for _, m := range _raw {
 		v := m.Val()
-
-		{{ range .TLsFields -}}
-		{{ $raw := printf "v[%q]" .Name -}}
-		{{ template "from-string.go.tmpl" newMarshallData . $raw .Name "nil" }}
-		{{ end }}
-
-		{{ $rcv }} := {{ $nsmodel }}{
-			{{ range .TLsFields }}
-			{{- .Name }}: {{ .Name }},
-			{{ end }}
+		_{{ $numodel }}, err := parse{{ .Name }}(v)
+		if err != nil {
+			return nil, err
 		}
-		
-		_results = append(_results, {{ $rcv }})
+		_results = append(_results, _{{ $numodel }})
 	}
 	return _results, nil
 }
