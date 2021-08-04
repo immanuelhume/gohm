@@ -1,5 +1,5 @@
 {{ $model := .Name.Name }}
-{{ $nsmodel := .TNamespacedModel }}
+{{ $nsmodel := printf "%s.%s" .Pkg.Name .Name.Name }}
 {{ $numodel := lowerFirst .Name.Name }}
 {{ $rcv := toReceiverCase .Name.Name -}}
 

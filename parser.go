@@ -10,9 +10,10 @@ import (
 
 // Visitor to walk the AST tree.
 type Visitor struct {
-	PkgIndex int
-	Pkgs     []*packages.Package
-	Models   []Model
+	PkgIndex  int
+	Pkgs      []*packages.Package // all packages found within the module
+	Models    []Model
+	ModelPkgs map[*packages.Package]bool // only packages which contain models
 }
 
 // Visit will add nodes which are a struct type tagged with the // gohm
@@ -54,14 +55,16 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 Please place the model in a package that isn't main.`,
 			spec.Name.Name, pkg.PkgPath)
 	}
-	// create model and check each field's type
+	// If we reached here then the model is valid. Create model and check each field's type
 	m := Model{Pkg: pkg, Name: spec.Name, Fields: CollectFields(tobj)}
 	m.ValidateFields()
-
+	// collect the data in our visitor
 	v.Models = append(v.Models, m)
+	v.ModelPkgs[m.Pkg] = true
 	return v
 }
 
+// Convenience function to dump all fields of a struct into a slice.
 func CollectFields(s *types.Struct) []*types.Var {
 	var fields []*types.Var
 	for i := 0; i < s.NumFields(); i++ {
@@ -70,9 +73,9 @@ func CollectFields(s *types.Struct) []*types.Var {
 	return fields
 }
 
-// CollectModels takes a root directory and returns all models found
+// CollectTemplateData takes a root directory and returns all models found
 // in all packages.
-func CollectModels(dir string) []Model {
+func CollectTemplateData(dir string) TemplateData {
 	// TODO: check for re-declarations
 	cfg := &packages.Config{Mode: packages.NeedSyntax | packages.NeedName |
 		packages.NeedTypes | packages.NeedTypesInfo | packages.NeedModule}
@@ -80,14 +83,19 @@ func CollectModels(dir string) []Model {
 	if err != nil {
 		panic(err)
 	}
-	v := &Visitor{Pkgs: pkgs, Models: []Model{}}
+	v := &Visitor{Pkgs: pkgs, Models: []Model{}, ModelPkgs: make(map[*packages.Package]bool)}
 	for i, pkg := range pkgs {
 		v.PkgIndex = i
 		for _, file := range pkg.Syntax {
 			ast.Walk(v, file)
 		}
 	}
-	return v.Models
+	// Visitor collected the packages as a set. Here we'll convert it into a slice.
+	var modelPkgs []*packages.Package
+	for pkg := range v.ModelPkgs {
+		modelPkgs = append(modelPkgs, pkg)
+	}
+	return TemplateData{Models: v.Models, Packages: modelPkgs}
 }
 
 // These types are not supported. They cannot be sensibly marshalled into a string

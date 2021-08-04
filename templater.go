@@ -17,35 +17,19 @@ type Model struct {
 	Pkg *packages.Package
 	// name of this model
 	Name *ast.Ident
-	// Each field is represented by a *types.Var variable
+	// each field is represented by a *types.Var variable
 	Fields []*types.Var
+}
+
+// Shape of the data we're gonna pass into our template file.
+type TemplateData struct {
+	Models   []Model
+	Packages []*packages.Package
 }
 
 type SimpleField struct {
 	Name string
 	Type string
-}
-
-// Shape of the data we're gonna pass into our template file.
-type TemplateData struct {
-	Models []Model
-}
-
-// Constructs the type with its package.
-func (m *Model) TNamespacedModel() string {
-	return fmt.Sprintf("%s.%s", m.Pkg.Name, m.Name.Name)
-}
-
-// Generates a slice of strings denoting each field of
-// the model as a pointer.
-func (m *Model) TPtrFields() []string {
-	// TODO: handle case where field is already a pointer
-	ptrFields := []string{}
-	for _, f := range m.Fields {
-		line := fmt.Sprintf("%s *%s", f.Name(), f.Type().String())
-		ptrFields = append(ptrFields, line)
-	}
-	return ptrFields
 }
 
 // LsFields returns the fields on a model as a slice of SimpleField(s).
@@ -55,48 +39,6 @@ func (m *Model) TLsFields() []SimpleField {
 		fds = append(fds, SimpleField{f.Name(), f.Type().String()})
 	}
 	return fds
-}
-
-// Collects all the unique packages for models in a set.
-func (td *TemplateData) Packages() map[*packages.Package]bool {
-	paths := map[*packages.Package]bool{}
-	for _, m := range td.Models {
-		_, ok := paths[m.Pkg]
-		if ok {
-			continue
-		}
-		paths[m.Pkg] = true
-	}
-	return paths
-}
-
-// Constructs package names as part of import statement.
-func (td *TemplateData) TImports() string {
-	pkgs := td.Packages()
-	var str strings.Builder
-	for pkg := range pkgs {
-		str.WriteString(fmt.Sprintf("%s \"%s\"\n", pkg.Name, pkg.PkgPath))
-	}
-	return str.String()
-}
-
-// Collects raw names of models.
-func (td *TemplateData) ModelNames() []string {
-	names := []string{}
-	for _, m := range td.Models {
-		names = append(names, m.Name.Name)
-	}
-	return names
-}
-
-// Writes model names for template. This is used when constructing the
-// new client.
-func (td *TemplateData) TGohmFields() string {
-	var names strings.Builder
-	for _, name := range td.ModelNames() {
-		names.WriteString(fmt.Sprintf("%s *%s\n", name, name))
-	}
-	return names.String()
 }
 
 // Write the template into out.
@@ -142,7 +84,8 @@ func newMarshallData(f SimpleField, rawExp, resExp, onError string) MarshallData
 }
 
 // For each field, generate code which loads the appropriate string
-// representation into a map.
+// representation into a map. I want to make use of type switching and code
+// auto-completion, so this part is not in the template.
 func TStringifyField(mapName string, f *types.Var, raw string) string {
 	switch t := f.Type().Underlying().(type) {
 	case *types.Basic:

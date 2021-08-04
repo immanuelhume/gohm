@@ -10,13 +10,17 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
-	{{ .TImports }}
+	{{ range .Packages -}}
+	{{ .Name }} "{{ .PkgPath }}"
+	{{ end }}
 )
 
 type GohmClient struct {
 	*redis.Client
 
-	{{ .TGohmFields }}
+	{{ range .Models -}}
+	{{ .Name.Name }} *{{ .Name.Name }}
+	{{ end }}
 }
 
 // Works just like redis.NewClient and returns a Redis client.
@@ -36,7 +40,7 @@ func NewClient(opt *redis.Options) *GohmClient {
 {{ range .Models -}}
 
 {{ $model := .Name.Name }}
-{{ $nsmodel := .TNamespacedModel }}
+{{ $nsmodel := printf "%s.%s" .Pkg.Name .Name.Name }}
 {{ $numodel := lowerFirst .Name.Name }}
 {{ $rcv := toReceiverCase .Name.Name }}
 {{ $findopt := printf "%s%s" $model "FindOpt" -}}

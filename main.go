@@ -38,8 +38,7 @@ func Gen() {
 	if err != nil {
 		panic(err)
 	}
-	models := CollectModels(dir)
-	td := &TemplateData{models}
+	td := CollectTemplateData(dir)
 	b := &bytes.Buffer{}
 	WritePackage("0-main.go.tmpl", "templates/*", b, td, map[string]interface{}{
 		"toReceiverCase":  toReceiverCase,
