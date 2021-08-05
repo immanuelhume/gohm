@@ -13,33 +13,23 @@ import (
 
 // NOTE: findOpt must be different for composite types - for basic types we
 // just check direct matching, but slices, for instance, should support
-// things like membership
+// things like membership.
 
 func main() {
-	Gen()
+	var dir string
+	var b *bytes.Buffer
 
-	// 	ctx := context.Background()
-	// 	rdb := gohm.NewClient(&redis.Options{})
-	// 	err := rdb.Anime.Save(ctx,
-	// 		&playground.Anime{Title: "Mugen Train", Year: 2021, Rating: float64(100)})
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	as, err := rdb.Anime.FindMany(ctx,
-	// 		&gohm.AnimeFindOpt{Title: gohm.String("Mugen Train")})
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	fmt.Print(as)
-}
-
-func Gen() {
 	dir, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
+	b = &bytes.Buffer{}
+	Codegen(dir, b, "./local/generated.go")
+}
+
+// Codegen is the main function which writes the generated code.
+func Codegen(dir string, b *bytes.Buffer, out string) {
 	td := CollectTemplateData(dir)
-	b := &bytes.Buffer{}
 	WritePackage("00-main.go.tmpl", "templates/*", b, td, map[string]interface{}{
 		"toReceiverCase":  toReceiverCase,
 		"lowerFirst":      lowerFirst,
@@ -51,5 +41,5 @@ func Gen() {
 	if err != nil {
 		panic(err)
 	}
-	ioutil.WriteFile("./local/generated.go", src, 0644)
+	ioutil.WriteFile(out, src, 0644)
 }

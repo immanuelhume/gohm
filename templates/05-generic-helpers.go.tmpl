@@ -10,7 +10,7 @@ func genKey(tags ...interface{}) string {
 }
 
 // intersect finds the intersection of n string slices. When will generics arrive? owo
-func intersect(slices [][]string) []string {
+func intersect(slices ...[]string) []string {
 	if len(slices) == 1 {
 		return slices[0]
 	}
@@ -55,3 +55,29 @@ func Float64(v float64) *float64 { return &v }
 
 // String stores v in a new string value and returns a pointer to it.
 func String(v string) *string { return &v }
+
+// cmdsFromFindOpt returns a slice of *redis.StringSliceCmd corresponding to the
+// find options given.
+func cmdsFromFindOpt(_ctx context.Context, _pipe redis.Pipeliner, _m string, _v reflect.Value, _t reflect.Type) []*redis.StringSliceCmd {
+	var _cmds []*redis.StringSliceCmd
+	for i := 0; i < _v.NumField(); i++ {
+		_val := _v.Field(i)
+		if _val.IsNil() {
+			continue
+		}
+		_fname := _t.Field(i)
+		_key := genKey(_m, _fname, _val.Elem())
+		_cmds = append(_cmds, _pipe.SMembers(_ctx, _key))
+	}
+	return _cmds
+}
+
+// keyHits retrieves each result from a slice of *redis.StringSliceCmd
+// and finds their intersection
+func keyHits(_cmds []*redis.StringSliceCmd) []string {
+	var _hits [][]string
+	for _, cmd := range _cmds {
+		_hits = append(_hits, cmd.Val())
+	}
+	return intersect(_hits...)
+}

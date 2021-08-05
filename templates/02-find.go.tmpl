@@ -11,35 +11,18 @@ func({{ $rcv }} *{{ $model }}) FindMany(ctx context.Context, options *{{ $findop
 	_v := reflect.ValueOf(options).Elem()
 	_t := _v.Type()
 
-	var _cmds []*redis.StringSliceCmd
-	var _hits [][]string
-	var _keys []string
-
 	var _raw []*redis.StringStringMapCmd
 	var _results []{{ $nsmodel }}
 
 	_pipe := {{ $rcv }}.rdb.Pipeline()
 
-	for i := 0; i < _v.NumField(); i++ {
-		_val := _v.Field(i)
-		if _val.IsNil() {
-			continue
-		}
-		_field := _t.Field(i).Name
-
-		_key := genKey("{{ $model }}", _field, _val.Elem())
-		_cmds = append(_cmds, _pipe.SMembers(ctx, _key))
-	}
-
+	_cmds := cmdsFromFindOpt(ctx, _pipe, "{{ $model }}", _v, _t)
 	_, err := _pipe.Exec(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, cmd := range _cmds {
-		_hits = append(_hits, cmd.Val())
-	}
-	_keys = intersect(_hits)
+	_keys := keyHits(_cmds)
 
 	for _, k := range _keys {
 		_raw = append(_raw, _pipe.HGetAll(ctx, k))

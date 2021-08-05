@@ -6,6 +6,8 @@
 {{ $rcv := toReceiverCase .Name.Name -}}
 
 // Save inserts one {{ $model }} into Redis. Returns either an error or nil.
+// The convention for keys is "<model>:<field>:<value>" for individual fields
+// and "<model>:<uuid>" for the hash map.
 func({{ $rcv }} *{{ $model }}) Save(ctx context.Context, {{ $numodel }} *{{ $nsmodel }}) error {
 	_pipe := {{ $rcv }}.rdb.Pipeline()
 	_mKey := genKey("{{ $model }}", uuid.NewString())

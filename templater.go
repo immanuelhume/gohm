@@ -11,7 +11,8 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// An Model contains raw syntax information for a gohm-tagged struct.
+// Model contains raw syntax information for a gohm-tagged struct. It also represents
+// a single model which can be 'inserted' into Redis.
 type Model struct {
 	// package in which the struct is declared
 	Pkg *packages.Package
@@ -21,27 +22,13 @@ type Model struct {
 	Fields []*types.Var
 }
 
-// Shape of the data we're gonna pass into our template file.
+// TemplateData is the shape of data we're gonna pass into our template file.
 type TemplateData struct {
 	Models   []Model
 	Packages []*packages.Package
 }
 
-type SimpleField struct {
-	Name string
-	Type string
-}
-
-// LsFields returns the fields on a model as a slice of SimpleField(s).
-func (m *Model) TLsFields() []SimpleField {
-	var fds []SimpleField
-	for _, f := range m.Fields {
-		fds = append(fds, SimpleField{f.Name(), f.Type().String()})
-	}
-	return fds
-}
-
-// Write the template into out.
+// WritePackage writes the template into `out`.
 func WritePackage(
 	main string,
 	in string,
@@ -59,19 +46,19 @@ func WritePackage(
 	}
 }
 
-// Extracts first letter of word as lower-case.
+// toReceiverCase extracts the first letter of a string as lower-case.
 func toReceiverCase(thing string) string {
 	return strings.ToLower(string(thing[0]))
 }
 
-// Lowers the first character of a string.
+// lowerFirst lowers the first character of a string.
 func lowerFirst(s string) string {
 	return strings.ToLower(string(s[0])) + s[1:]
 }
 
-// For each field, generate code which loads the appropriate string
-// representation into a map. I want to make use of type switching and code
-// auto-completion, so this part is not in the template.
+// TStringifyField takes each field of a struct and generates code which loads
+// the appropriate string representation into a map. I want to make use of type
+// switching and code auto-completion, so this part is not in the template.
 func TStringifyField(mapName string, f *types.Var, raw string) string {
 	switch t := f.Type().Underlying().(type) {
 	case *types.Basic:
